@@ -1,0 +1,5033 @@
+task.spawn(function()
+
+repeat task.wait(0.2) until game:IsLoaded()
+
+local Players           = cloneref(game:GetService("Players"))
+local ReplicatedStorage = cloneref(game:GetService("ReplicatedStorage"))
+local UserInputService  = cloneref(game:GetService("UserInputService"))
+local RunService        = cloneref(game:GetService("RunService"))
+local TweenService      = cloneref(game:GetService("TweenService"))
+local Stats             = cloneref(game:GetService("Stats"))
+local Debris            = cloneref(game:GetService("Debris"))
+local CoreGui           = cloneref(game:GetService("CoreGui"))
+local HttpService       = cloneref(game:GetService("HttpService"))
+local Workspace         = cloneref(game:GetService("Workspace"))
+local LocalPlayer       = Players.LocalPlayer
+
+if not LocalPlayer then
+    Players:GetPropertyChangedSignal("LocalPlayer"):Wait()
+    LocalPlayer = Players.LocalPlayer
+end
+
+local p1 = "MitHub"
+
+pcall(function()
+    if isfolder and makefolder then
+        if not isfolder(p1) then makefolder(p1) end
+    end
+end)
+
+local z1 = {}
+local function f1(instance, thickness, edge)
+    edge = edge or Color3.fromRGB(160, 60, 255)
+    local stroke = Instance.new("UIStroke")
+    stroke.Thickness = thickness or 2
+    stroke.Color = Color3.fromRGB(255, 255, 255)
+    stroke.Transparency = 0.1
+    stroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+    stroke.Parent = instance
+
+    local gradient = Instance.new("UIGradient")
+    gradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0.0, edge),
+        ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 255)),
+        ColorSequenceKeypoint.new(1.0, edge)
+    })
+    gradient.Rotation = 0
+    gradient.Parent = stroke
+
+    local conn
+    conn = RunService.RenderStepped:Connect(function(dt)
+        if not stroke.Parent then
+            if conn then conn:Disconnect() end
+            return
+        end
+        gradient.Rotation = (gradient.Rotation + dt * 95) % 360
+    end)
+    table.insert(z1, conn)
+    return stroke, gradient
+end
+
+local MitHubLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/mitzhush/loaders/refs/heads/main/rurussollib4"))()
+local lib = MitHubLib.new("MitHub", nil)
+lib:SetVersion("v1.3")
+lib:SetSubtitle("Blade Ball")
+
+local Fluent = {}
+function Fluent:Notify(o)
+    local title = o.Title and tostring(o.Title) or ""
+    local msg = tostring(o.Content or "")
+    if title ~= "" then msg = title .. ": " .. msg end
+    pcall(function() lib:Notify(msg, o.Duration or 3) end)
+end
+local Window = {}
+
+local u2 = {}
+local p2 = {}
+
+local KEYBIND_FLAGS = {
+    MitHubAutoParryToggle = true,
+    MitHubAutoAbility = true,
+    MitHubAutoCurveHotkey = true,
+    MitHubTriggerbotToggle = true,
+    MitHubAutoSpamToggle = true,
+    MitHubManualSpamToggle = true,
+    MitHubInfinityDetection = true,
+    MitHubDeathSlashDetection = true,
+    MitHubTimeHoleDetection = true,
+    MitHubSlashesOfFuryDetection = true,
+    MitHubAntiPhantom = true,
+    MitHubPullDetection = true,
+    MitHubAutoJump = true,
+    MitHubInfiniteJump = true,
+    MitHubCharacterEnabled = true,
+    MitHubWalkSpeedToggle = true,
+    MitHubJumpPowerToggle = true,
+    MitHubSpinbot = true,
+    MitHubAbilityESP = true,
+    MitHubFOVEnabled = true,
+    MitHubNoRender = true,
+    MitHubThunderDashToggle = true,
+    MitHubEmotesToggle = true,
+}
+
+local function x2(flag, kind, defaultVal, callback, ctrl)
+    if not flag or flag == "" then return end
+    u2[flag] = defaultVal
+    p2[flag] = {
+        kind = kind,
+        callback = callback,
+        control = ctrl
+    }
+end
+
+local function q2(flag, newState)
+    local entry = p2[flag]
+    if not entry then return end
+    local callbackFired = false
+    entry._onSet = function()
+        callbackFired = true
+    end
+    if entry.control then
+        pcall(function()
+            if entry.control.Set then
+                entry.control:Set(newState)
+            end
+        end)
+    end
+    entry._onSet = nil
+    if not callbackFired and entry.callback then
+        pcall(entry.callback, newState)
+    end
+end
+
+local function applyValue(obj, v)
+    if type(obj) ~= "table" then return end
+    for _, name in ipairs({"SetValue", "SetState", "Set", "SetSelected"}) do
+        local fn = obj[name]
+        if type(fn) == "function" then
+            pcall(fn, v)
+            return
+        end
+    end
+end
+
+local firstTab = true
+
+function Window:AddTab(options)
+    local page = lib:CreateTab(options.Title, firstTab, options.Icon)
+    firstTab = false
+    local tab = {}
+    function tab:AddSection(title)
+        pcall(function() lib:MakeSeparator(page, title) end)
+        local section = {}
+        function section:AddToggle(flag, cfg)
+            local origCb = cfg.Callback
+            local wrappedCb = function(v)
+                if flag then
+                    u2[flag] = v
+                    local reg = p2[flag]
+                    if reg and reg._onSet then reg._onSet() end
+                end
+                if origCb then origCb(v) end
+            end
+            local tg = lib:AddToggle(page, cfg.Title, wrappedCb, nil, flag and ("mithub." .. flag) or nil, KEYBIND_FLAGS[flag] and true or nil)
+            if cfg.Default then
+                pcall(function() tg.SetState(true, true) end)
+            end
+            local ctrl = {}
+            function ctrl:Set(v)
+                pcall(function() tg.SetState(v, true) end)
+            end
+            x2(flag, "toggle", cfg.Default or false, wrappedCb, ctrl)
+            return ctrl
+        end
+        function section:AddDropdown(flag, cfg)
+            local origCb = cfg.Callback
+            local wrappedCb = function(v)
+                if flag then u2[flag] = v end
+                if origCb then origCb(v) end
+            end
+            local dd = lib:AddDropdown(page, cfg.Title, cfg.Values, cfg.Default, wrappedCb, flag and ("mithub." .. flag) or nil, true)
+            local ctrl = {}
+            function ctrl:Set(v) applyValue(dd, v) end
+            x2(flag, "dropdown", cfg.Default, wrappedCb, ctrl)
+            return ctrl
+        end
+        function section:AddSlider(flag, cfg)
+            local origCb = cfg.Callback
+            local wrappedCb = function(v)
+                if flag then u2[flag] = v end
+                if origCb then origCb(v) end
+            end
+            local sl = lib:MakeSlider(page, cfg.Title, cfg.Min, cfg.Max, cfg.Default, cfg.Rounding or 0, wrappedCb)
+            local ctrl = {}
+            function ctrl:Set(v) applyValue(sl, v) end
+            x2(flag, "slider", cfg.Default, wrappedCb, ctrl)
+            if flag then
+                pcall(function()
+                    lib:RegisterFlag("mithub." .. flag, function() return u2[flag] end, function(v)
+                        if v == nil then return end
+                        ctrl:Set(v)
+                        wrappedCb(v)
+                    end)
+                end)
+            end
+            return ctrl
+        end
+        function section:AddInput(flag, cfg)
+            local origCb = cfg.Callback
+            local wrappedCb = function(v)
+                if flag then u2[flag] = v end
+                if origCb then origCb(v) end
+            end
+            local row = lib:MakeRow(page, 34)
+            lib:MakeLabel(row, cfg.Title, 10, 120)
+            local box = lib:MakeTextBox(row, tostring(cfg.Default or ""), cfg.Placeholder or "", -150, 140)
+            box.FocusLost:Connect(function()
+                wrappedCb(box.Text)
+            end)
+            local ctrl = {}
+            function ctrl:Set(v) box.Text = tostring(v) end
+            x2(flag, "input", cfg.Default or "", wrappedCb, ctrl)
+            return ctrl
+        end
+        function section:AddValueBox(flag, cfg)
+            local current = cfg.Default
+            local row = lib:MakeRow(page, 34)
+            lib:MakeLabel(row, cfg.Title, 10, 120)
+            local box = lib:MakeTextBox(row, tostring(cfg.Default), cfg.Placeholder or "", -150, 140)
+            local function commit(v)
+                local n = tonumber(v)
+                if not n then
+                    box.Text = tostring(current)
+                    return
+                end
+                if cfg.Min and n < cfg.Min then n = cfg.Min end
+                if cfg.Max and n > cfg.Max then n = cfg.Max end
+                if cfg.Rounding then
+                    local m = 10 ^ cfg.Rounding
+                    n = math.floor(n * m + 0.5) / m
+                end
+                current = n
+                box.Text = tostring(n)
+                if flag then u2[flag] = n end
+                if cfg.Callback then cfg.Callback(n) end
+            end
+            box.FocusLost:Connect(function()
+                commit(box.Text)
+            end)
+            local ctrl = {}
+            function ctrl:Set(v) commit(v) end
+            x2(flag, "input", cfg.Default, commit, ctrl)
+            if flag then
+                pcall(function()
+                    lib:RegisterFlag("mithub." .. flag, function() return u2[flag] end, function(v)
+                        if v == nil then return end
+                        commit(v)
+                    end)
+                end)
+            end
+            pcall(commit, cfg.Default)
+            return ctrl
+        end
+        function section:AddButton(_, cfg)
+            return lib:AddButton(page, cfg.Title, cfg.Callback)
+        end
+        return section
+    end
+    return tab
+end
+
+local Tabs = {
+    Rage      = Window:AddTab({Title = "Autoparry", Icon = "sword"}),
+    Spam      = Window:AddTab({Title = "Spam",       Icon = "skull"}),
+    Detection = Window:AddTab({Title = "Detection",  Icon = "eye"}),
+    Movement  = Window:AddTab({Title = "Movement",   Icon = "zap"}),
+    Visuals   = Window:AddTab({Title = "Visuals",    Icon = "monitor"}),
+    Misc      = Window:AddTab({Title = "Misc",       Icon = "settings"})
+}
+
+-- ========================= AVATAR CHANGER =========================
+-- Copia o avatar de qualquer jogador (roupas, acessorios, corpo, escalas,
+-- animacoes, emotes, nome/UserId) + Korblox, Horns e proporcoes.
+-- Fica na pagina de Skins da propria lib (lib:GetSkinPage), igual ao script do
+-- Violence District, e salva/carrega pelo mesmo sistema de skins da lib.
+task.spawn(function()
+    local Players = game:GetService("Players")
+    local InsertService = game:GetService("InsertService")
+    local LP = Players.LocalPlayer
+
+    if not LP or not lib.GetSkinPage or not lib.SkinControls then
+        pcall(function() lib:Notify("Avatar Changer needs a rurussollib with the Skins page", 5) end)
+        return
+    end
+
+    local skinPage = lib:GetSkinPage()
+
+    local extras = { korblox = false, horns = 0 }
+    local copyIdentity = false -- nasce desligado: trocar LP.Name quebra o Auto Parry
+    local suppressScale = false
+    local uiReady = false
+    local setStatus = function() end
+    local charConn = nil
+    local copyState = { desc = nil, userId = nil, name = nil, emotes = {} }
+    local originalDesc = nil
+    local originalIdentity = nil
+    local scalesTouched = false
+    local refreshSliders = function() end
+    local refreshEmoteList = function() end
+    local animBackup = {}
+    local emoteTrack = nil
+    local emoteConn = nil
+    local loadToken = 0
+
+    local HORN_OPTIONS = {
+        {label = "FIERY", id = 215718515},
+        {label = "FROZEN", id = 74891470},
+        {label = "POISON", id = 1744060292},
+        {label = "ICY", id = 241542617},
+        {label = "IRON", id = 1360068971},
+        {label = "STORMBREAK", id = 76479271580913},
+    }
+    local R6_LEG_LIFT = 0.65
+    local KORBLOX_IDS = { left = 139607673, right = 139607718 }
+    local KORBLOX_TARGETS = { left = "LeftUpperLeg", right = "RightUpperLeg" }
+    local KORBLOX_FALLBACK = { left = "Left Leg", right = "Right Leg" }
+    local KORBLOX_HIDES = {
+        left = {"LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "Left Leg"},
+        right = {"RightUpperLeg", "RightLowerLeg", "RightFoot", "Right Leg"},
+    }
+    local RESET_PARTS = {
+        "Head",
+        "LeftUpperLeg", "LeftLowerLeg", "LeftFoot", "Left Leg",
+        "RightUpperLeg", "RightLowerLeg", "RightFoot", "Right Leg",
+    }
+
+    local SCALE_DEFS = {
+        {label = "Width", value = "BodyWidthScale", desc = "WidthScale", min = 0.5, max = 2, default = 1},
+        {label = "Height", value = "BodyHeightScale", desc = "HeightScale", min = 0.5, max = 2, default = 1},
+        {label = "Depth", value = "BodyDepthScale", desc = "DepthScale", min = 0.5, max = 2, default = 1},
+        {label = "Head", value = "HeadScale", desc = "HeadScale", min = 0.5, max = 2, default = 1},
+        {label = "Body Type", value = "BodyTypeScale", desc = "BodyTypeScale", min = 0, max = 1, default = 0},
+        {label = "Proportion", value = "BodyProportionScale", desc = "ProportionScale", min = 0, max = 1, default = 0},
+    }
+    local DEFAULT_SCALES = {}
+    local scales = {}
+    for i, def in ipairs(SCALE_DEFS) do
+        DEFAULT_SCALES[i] = def.default
+        scales[i] = def.default
+    end
+
+    local function fmtId(n)
+        return string.format("%.0f", tonumber(n) or 0)
+    end
+
+    local function getHum()
+        local char = LP.Character
+        return char and char:FindFirstChildOfClass("Humanoid")
+    end
+
+    local function clearAllOutfit(char)
+        if not char then return end
+        for _, obj in ipairs(char:GetChildren()) do
+            if obj:IsA("Shirt") or obj:IsA("Pants") or obj:IsA("ShirtGraphic") then
+                obj:Destroy()
+            end
+        end
+    end
+
+    local function clearAllAccessories(char)
+        if not char then return end
+        for _, child in ipairs(char:GetChildren()) do
+            if child:IsA("Accessory") or child:IsA("Hat")
+                or child.Name == "AuFfitAccessory"
+                or child.Name == "AuFfitShirtAccessory" then
+                child:Destroy()
+            end
+        end
+        for _, partName in ipairs(RESET_PARTS) do
+            local part = char:FindFirstChild(partName)
+            if part and part:IsA("BasePart") then
+                part.Transparency = 0
+            end
+        end
+    end
+
+    local function loadAsset(id)
+        local urls = {
+            "rbxassetid://" .. fmtId(id),
+            "http://www.roblox.com/asset/?id=" .. fmtId(id),
+        }
+        for _ = 1, 2 do
+            for _, url in ipairs(urls) do
+                local okGet, got = pcall(function()
+                    return game:GetObjects(url)
+                end)
+                if okGet and type(got) == "table" and #got > 0 then
+                    return got
+                end
+            end
+        end
+        local ok, res = pcall(function()
+            return InsertService:LoadAsset(id)
+        end)
+        if ok and res then
+            return {res}
+        end
+        return nil
+    end
+
+    local function findAll(objs, className)
+        local out = {}
+        for _, o in ipairs(objs) do
+            if o:IsA(className) then
+                table.insert(out, o)
+            end
+            for _, d in ipairs(o:GetDescendants()) do
+                if d:IsA(className) then
+                    table.insert(out, d)
+                end
+            end
+        end
+        return out
+    end
+
+    local function attachmentFrames(head, handle, accessory)
+        for _, att in ipairs(handle:GetChildren()) do
+            if att:IsA("Attachment") then
+                local headAtt = head:FindFirstChild(att.Name)
+                if headAtt and headAtt:IsA("Attachment") then
+                    return headAtt.CFrame, att.CFrame
+                end
+            end
+        end
+        local point = accessory and accessory.AttachmentPoint or CFrame.new()
+        return CFrame.new(0, head.Size.Y / 2, 0), point
+    end
+
+    local function equipAttached(char, head, id, name, offset)
+        local objs = loadAsset(id)
+        if not objs then return false end
+        local old = char:FindFirstChild(name)
+        if old then old:Destroy() end
+
+        local acc, handle
+        for _, o in ipairs(objs) do
+            if o:IsA("Accoutrement") then
+                acc = o
+            else
+                acc = o:FindFirstChildWhichIsA("Accoutrement", true)
+            end
+            if acc then
+                handle = acc:FindFirstChild("Handle")
+                break
+            end
+        end
+        if not handle then
+            for _, o in ipairs(objs) do
+                if o:IsA("BasePart") then
+                    handle = o
+                else
+                    handle = o:FindFirstChild("Handle", true) or o:FindFirstChildWhichIsA("BasePart", true)
+                end
+                if handle then break end
+            end
+        end
+
+        local ok = false
+        if handle and handle:IsA("BasePart") then
+            local c0, c1 = attachmentFrames(head, handle, acc)
+            local part = handle:Clone()
+            part.Name = name
+            part.CanCollide = false
+            part.Anchored = false
+            part.Massless = true
+            for _, d in ipairs(part:GetChildren()) do
+                if d:IsA("JointInstance") or d:IsA("WeldConstraint") then
+                    d:Destroy()
+                end
+            end
+            part.CFrame = head.CFrame * c0 * c1:Inverse()
+            local weld = Instance.new("Weld")
+            weld.Name = "ExtraWeld"
+            weld.Part0 = head
+            weld.Part1 = part
+            weld.C0 = c0 * CFrame.new(offset or Vector3.zero)
+            weld.C1 = c1
+            weld.Parent = part
+            part.Parent = char
+            ok = true
+        end
+
+        for _, o in ipairs(objs) do
+            pcall(function() o:Destroy() end)
+        end
+        return ok
+    end
+
+    local function overlayKorblox(char, side)
+        local r15Part = char:FindFirstChild(KORBLOX_TARGETS[side])
+        local r6Part = char:FindFirstChild(KORBLOX_FALLBACK[side])
+        local targetPart = r15Part or r6Part
+        if not targetPart then return false end
+        local anchorCFrame = r15Part and r15Part.CFrame or (r6Part.CFrame * CFrame.new(0, R6_LEG_LIFT, 0))
+        local objs = loadAsset(KORBLOX_IDS[side])
+        if not objs or #objs == 0 then return false end
+        local assetModel = objs[1]
+        local mainMesh = assetModel:IsA("BasePart") and assetModel or assetModel:FindFirstChildWhichIsA("BasePart", true)
+        if not mainMesh then return false end
+        for _, partName in ipairs(KORBLOX_HIDES[side]) do
+            local limb = char:FindFirstChild(partName)
+            if limb and limb:IsA("BasePart") then
+                limb.Transparency = 1
+            end
+        end
+        mainMesh.CanCollide = false
+        mainMesh.Massless = true
+        mainMesh.CFrame = anchorCFrame
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = targetPart
+        weld.Part1 = mainMesh
+        weld.Parent = mainMesh
+        assetModel.Name = "KorbloxLeg"
+        assetModel.Parent = char
+        return true
+    end
+
+    local function wantsKorblox()
+        if extras.korblox then return "right" end
+        return nil
+    end
+
+    local function refreshKorblox(char)
+        local old = char:FindFirstChild("KorbloxLeg")
+        if old then old:Destroy() end
+        for _, partName in ipairs(RESET_PARTS) do
+            if partName ~= "Head" then
+                local part = char:FindFirstChild(partName)
+                if part and part:IsA("BasePart") then
+                    part.Transparency = 0
+                end
+            end
+        end
+        local side = wantsKorblox()
+        if side then
+            overlayKorblox(char, side)
+        end
+    end
+
+    local function runExtras()
+        local char = LP.Character
+        if not char then return end
+        local oldHorns = char:FindFirstChild("ExtraHorns")
+        if oldHorns then oldHorns:Destroy() end
+        refreshKorblox(char)
+        local horn = HORN_OPTIONS[extras.horns]
+        if horn then
+            local head = char:FindFirstChild("Head")
+            if head then
+                equipAttached(char, head, horn.id, "ExtraHorns", Vector3.zero)
+            end
+        end
+    end
+
+    local extrasRunning = false
+    local extrasDirty = false
+
+    local function applyExtras()
+        if extrasRunning then
+            extrasDirty = true
+            return
+        end
+        extrasRunning = true
+        repeat
+            extrasDirty = false
+            local okRun, errRun = pcall(runExtras)
+            if not okRun then
+                warn("[Skin] extras: " .. tostring(errRun))
+            end
+        until not extrasDirty
+        extrasRunning = false
+    end
+
+    local function trim(s)
+        return (tostring(s or ""):gsub("^%s+", ""):gsub("%s+$", ""))
+    end
+
+    local function resolveUserId(text)
+        text = trim(text)
+        if text == "" then return nil end
+        local n = tonumber(text)
+        if n and n > 0 and n == math.floor(n) then
+            return n
+        end
+        local ok, id = pcall(function()
+            return Players:GetUserIdFromNameAsync(text)
+        end)
+        if ok and id then return id end
+        return nil
+    end
+
+    local function fetchDescription(userId)
+        local ok, desc = pcall(function()
+            return Players:GetHumanoidDescriptionFromUserId(userId)
+        end)
+        if ok and desc then return desc end
+        return nil
+    end
+
+    local function applyDescriptionSafe(hum, desc)
+        local ok = pcall(function() hum:ApplyDescription(desc) end)
+        if ok then return true end
+        ok = pcall(function() hum:ApplyDescriptionClientServer(desc) end)
+        return ok
+    end
+
+    local function captureOriginal(hum)
+        if originalDesc then return end
+        pcall(function()
+            originalDesc = hum:GetAppliedDescription()
+        end)
+    end
+
+    local function scalesFromDesc(desc)
+        for i, def in ipairs(SCALE_DEFS) do
+            local ok, v = pcall(function() return desc[def.desc] end)
+            if ok and type(v) == "number" then
+                scales[i] = v
+            else
+                scales[i] = def.default
+            end
+        end
+    end
+
+    local function readScalesFromHumanoid(hum)
+        for i, def in ipairs(SCALE_DEFS) do
+            local nv = hum:FindFirstChild(def.value)
+            if nv and nv:IsA("NumberValue") then
+                scales[i] = nv.Value
+            end
+        end
+    end
+
+    local function writeScale(hum, index, value)
+        if hum.RigType ~= Enum.HumanoidRigType.R15 then return end
+        local def = SCALE_DEFS[index]
+        local nv = hum:FindFirstChild(def.value)
+        if not nv then
+            nv = Instance.new("NumberValue")
+            nv.Name = def.value
+            nv.Parent = hum
+        end
+        nv.Value = value
+    end
+
+    local function writeScales(hum, values)
+        for i = 1, #SCALE_DEFS do
+            writeScale(hum, i, values[i])
+        end
+    end
+
+    local BODY_PART_KEYS = {"Head", "Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg"}
+    local ACCESSORY_KEYS = {
+        "HatAccessory", "HairAccessory", "FaceAccessory", "NeckAccessory",
+        "ShouldersAccessory", "FrontAccessory", "BackAccessory", "WaistAccessory",
+    }
+
+    local function collectAccessoryIds(desc)
+        local ids, seen = {}, {}
+        local function add(id)
+            id = tonumber(id)
+            if id and id > 0 and not seen[id] then
+                seen[id] = true
+                table.insert(ids, id)
+            end
+        end
+        local ok, accs = pcall(function() return desc:GetAccessories(true) end)
+        if ok and accs then
+            for _, a in ipairs(accs) do
+                add(a.AssetId)
+            end
+        end
+        for _, key in ipairs(ACCESSORY_KEYS) do
+            local okKey, value = pcall(function() return desc[key] end)
+            if okKey and type(value) == "string" then
+                for id in string.gmatch(value, "%d+") do
+                    add(id)
+                end
+            end
+        end
+        return ids
+    end
+
+    local function applyBodyPart(char, id)
+        local objs = loadAsset(id)
+        if not objs then return end
+        for _, cm in ipairs(findAll(objs, "CharacterMesh")) do
+            for _, old in ipairs(char:GetChildren()) do
+                if old:IsA("CharacterMesh") and old.BodyPart == cm.BodyPart then
+                    old:Destroy()
+                end
+            end
+            pcall(function() cm:Clone().Parent = char end)
+        end
+        for _, mp in ipairs(findAll(objs, "MeshPart")) do
+            local target = char:FindFirstChild(mp.Name)
+            if target and target:IsA("BasePart") then
+                pcall(function()
+                    if target:IsA("MeshPart") then
+                        target.MeshId = mp.MeshId
+                        target.TextureID = mp.TextureID
+                        for _, old in ipairs(target:GetChildren()) do
+                            if old:IsA("SurfaceAppearance") then old:Destroy() end
+                        end
+                        local sa = mp:FindFirstChildWhichIsA("SurfaceAppearance")
+                        if sa then sa:Clone().Parent = target end
+                    else
+                        local sm = target:FindFirstChildWhichIsA("SpecialMesh")
+                        if not sm then
+                            sm = Instance.new("SpecialMesh")
+                            sm.Parent = target
+                        end
+                        sm.MeshType = Enum.MeshType.FileMesh
+                        sm.MeshId = mp.MeshId
+                        sm.TextureId = mp.TextureID
+                    end
+                end)
+            end
+        end
+        for _, sm in ipairs(findAll(objs, "SpecialMesh")) do
+            local partName = sm.Parent and sm.Parent.Name
+            local target = partName and char:FindFirstChild(partName)
+            if target and target:IsA("BasePart") and not target:IsA("MeshPart") then
+                pcall(function()
+                    local mesh = target:FindFirstChildWhichIsA("SpecialMesh")
+                    if not mesh then
+                        mesh = Instance.new("SpecialMesh")
+                        mesh.Parent = target
+                    end
+                    mesh.MeshType = Enum.MeshType.FileMesh
+                    mesh.MeshId = sm.MeshId
+                    mesh.TextureId = sm.TextureId
+                    mesh.Scale = sm.Scale
+                end)
+            end
+        end
+    end
+
+    local function attachAccessory(char, hum, acc)
+        local clone = acc:Clone()
+        local cloneHandle = clone:FindFirstChild("Handle")
+        if cloneHandle then
+            for _, j in ipairs(cloneHandle:GetChildren()) do
+                if j:IsA("JointInstance") or j:IsA("WeldConstraint") then
+                    j:Destroy()
+                end
+            end
+        end
+        local ok = pcall(function() hum:AddAccessory(clone) end)
+        if not ok or clone.Parent ~= char then
+            clone.Parent = char
+        end
+        local handle = clone:FindFirstChild("Handle")
+        if not handle or not handle:IsA("BasePart") then return true end
+        task.wait()
+        if handle:FindFirstChild("AccessoryWeld") then return true end
+        local joint = handle:FindFirstChildWhichIsA("JointInstance")
+        if joint then return true end
+        local head = char:FindFirstChild("Head")
+        local part0, c0, c1
+        for _, att in ipairs(handle:GetChildren()) do
+            if att:IsA("Attachment") then
+                for _, bodyPart in ipairs(char:GetChildren()) do
+                    if bodyPart:IsA("BasePart") then
+                        local ca = bodyPart:FindFirstChild(att.Name)
+                        if ca and ca:IsA("Attachment") then
+                            part0, c0, c1 = bodyPart, ca.CFrame, att.CFrame
+                            break
+                        end
+                    end
+                end
+            end
+            if part0 then break end
+        end
+        if not part0 and head then
+            part0 = head
+            c0 = CFrame.new(0, head.Size.Y / 2, 0)
+            c1 = clone.AttachmentPoint
+        end
+        if not part0 then return false end
+        handle.Anchored = false
+        handle.CanCollide = false
+        handle.Massless = true
+        local weld = Instance.new("Weld")
+        weld.Name = "AccessoryWeld"
+        weld.Part0 = part0
+        weld.Part1 = handle
+        weld.C0 = c0
+        weld.C1 = c1
+        weld.Parent = handle
+        handle.CFrame = part0.CFrame * c0 * c1:Inverse()
+        return true
+    end
+
+    local function manualCopy(char, hum, desc)
+        local bc = char:FindFirstChildOfClass("BodyColors")
+        if not bc then
+            bc = Instance.new("BodyColors")
+            bc.Parent = char
+        end
+        pcall(function()
+            bc.HeadColor3 = desc.HeadColor
+            bc.TorsoColor3 = desc.TorsoColor
+            bc.LeftArmColor3 = desc.LeftArmColor
+            bc.RightArmColor3 = desc.RightArmColor
+            bc.LeftLegColor3 = desc.LeftLegColor
+            bc.RightLegColor3 = desc.RightLegColor
+        end)
+
+        local function equipClothing(id)
+            if not id or id == 0 then return end
+            local objs = loadAsset(id)
+            if not objs then return end
+            for _, className in ipairs({"Shirt", "Pants", "ShirtGraphic"}) do
+                for _, o in ipairs(findAll(objs, className)) do
+                    pcall(function() o:Clone().Parent = char end)
+                end
+            end
+            for _, o in ipairs(objs) do
+                pcall(function() o:Destroy() end)
+            end
+        end
+
+        pcall(function()
+            clearAllOutfit(char)
+            equipClothing(desc.Shirt)
+            equipClothing(desc.Pants)
+            equipClothing(desc.GraphicTShirt)
+        end)
+
+        pcall(function()
+            for _, old in ipairs(char:GetChildren()) do
+                if old:IsA("CharacterMesh") then
+                    old:Destroy()
+                end
+            end
+            for _, key in ipairs(BODY_PART_KEYS) do
+                local id = desc[key]
+                if id and id ~= 0 then
+                    pcall(applyBodyPart, char, id)
+                end
+            end
+        end)
+
+        pcall(function()
+            local head = char:FindFirstChild("Head")
+            if head and desc.Face and desc.Face ~= 0 then
+                local objs = loadAsset(desc.Face)
+                if objs then
+                    for _, o in ipairs(findAll(objs, "Decal")) do
+                        local face = head:FindFirstChild("face") or head:FindFirstChildWhichIsA("Decal")
+                        if face then
+                            pcall(function() face.Texture = o.Texture end)
+                        end
+                    end
+                    for _, o in ipairs(objs) do
+                        pcall(function() o:Destroy() end)
+                    end
+                end
+            end
+        end)
+
+        clearAllAccessories(char)
+        local ids = collectAccessoryIds(desc)
+        local added = 0
+        for _, id in ipairs(ids) do
+            local objs = loadAsset(id)
+            if objs then
+                local found = false
+                for _, acc in ipairs(findAll(objs, "Accoutrement")) do
+                    local okAttach, res = pcall(attachAccessory, char, hum, acc)
+                    if okAttach and res then
+                        found = true
+                    end
+                end
+                if found then added = added + 1 end
+                for _, o in ipairs(objs) do
+                    pcall(function() o:Destroy() end)
+                end
+            end
+        end
+        return added, #ids
+    end
+
+    local function buildModel(hum, desc)
+        local base = desc:Clone()
+        for i, def in ipairs(SCALE_DEFS) do
+            pcall(function()
+                base[def.desc] = scales[i]
+            end)
+        end
+        local ok, model = pcall(function()
+            return Players:CreateHumanoidModelFromDescription(base, hum.RigType)
+        end)
+        if ok and model then return model end
+        return nil
+    end
+
+    local function swapPart(char, newPart)
+        local old = char:FindFirstChild(newPart.Name)
+        if not old or not old:IsA("BasePart") then return nil end
+        local savedCFrame = old.CFrame
+        pcall(function() old.Size = newPart.Size end)
+        if old:IsA("MeshPart") and newPart:IsA("MeshPart") then
+            pcall(function() old.MeshId = newPart.MeshId end)
+            pcall(function() old.TextureID = newPart.TextureID end)
+            for _, d in ipairs(old:GetChildren()) do
+                if d:IsA("SurfaceAppearance") then
+                    d:Destroy()
+                end
+            end
+            local sa = newPart:FindFirstChildWhichIsA("SurfaceAppearance")
+            if sa then
+                pcall(function() sa:Clone().Parent = old end)
+            end
+        elseif not old:IsA("MeshPart") then
+            local newMesh = newPart:FindFirstChildWhichIsA("SpecialMesh")
+            if newMesh then
+                local oldMesh = old:FindFirstChildWhichIsA("SpecialMesh")
+                if not oldMesh then
+                    oldMesh = Instance.new("SpecialMesh")
+                    oldMesh.Parent = old
+                end
+                pcall(function()
+                    oldMesh.MeshType = newMesh.MeshType
+                    oldMesh.MeshId = newMesh.MeshId
+                    oldMesh.TextureId = newMesh.TextureId
+                    oldMesh.Scale = newMesh.Scale
+                    oldMesh.Offset = newMesh.Offset
+                end)
+            end
+        end
+        for _, att in ipairs(newPart:GetChildren()) do
+            if att:IsA("Attachment") then
+                local target = old:FindFirstChild(att.Name)
+                if target and target:IsA("Attachment") then
+                    target.CFrame = att.CFrame
+                end
+            end
+        end
+        return old, savedCFrame
+    end
+
+    local function ensureAttached(char, list)
+        local root = char:FindFirstChild("HumanoidRootPart")
+        if not root then return 0 end
+        task.wait()
+        local fixed = 0
+        local rootAssembly = root.AssemblyRootPart
+        for _, item in ipairs(list) do
+            local part = item.part
+            if part.Parent and part.AssemblyRootPart ~= rootAssembly then
+                local weld = Instance.new("Weld")
+                weld.Name = "AvatarToolFallbackWeld"
+                weld.Part0 = root
+                weld.Part1 = part
+                weld.C0 = root.CFrame:ToObjectSpace(item.cframe)
+                weld.C1 = CFrame.new()
+                weld.Parent = part
+                part.CFrame = item.cframe
+                fixed = fixed + 1
+            end
+        end
+        return fixed
+    end
+
+    local function countAccessories(container)
+        local n = 0
+        for _, o in ipairs(container:GetChildren()) do
+            if o:IsA("Accoutrement") then
+                n = n + 1
+            end
+        end
+        return n
+    end
+
+    local function lookMatches(char, model)
+        local compared = 0
+        for _, mp in ipairs(model:GetChildren()) do
+            if mp:IsA("MeshPart") then
+                local cp = char:FindFirstChild(mp.Name)
+                if not cp or not cp:IsA("MeshPart") then return false end
+                compared = compared + 1
+                if cp.MeshId ~= mp.MeshId then return false end
+            elseif mp:IsA("BasePart") and mp.Name == "Head" then
+                local cp = char:FindFirstChild("Head")
+                local ms = mp:FindFirstChildWhichIsA("SpecialMesh")
+                local cs = cp and cp:FindFirstChildWhichIsA("SpecialMesh")
+                if not ms or not cs then return false end
+                compared = compared + 1
+                if cs.MeshId ~= ms.MeshId then return false end
+            end
+        end
+        if compared == 0 then return false end
+        if countAccessories(char) ~= countAccessories(model) then return false end
+        local cShirt = char:FindFirstChildOfClass("Shirt")
+        local mShirt = model:FindFirstChildOfClass("Shirt")
+        if (cShirt and cShirt.ShirtTemplate) ~= (mShirt and mShirt.ShirtTemplate) then return false end
+        return true
+    end
+
+    local function syncJoints(char, model)
+        for _, mj in ipairs(model:GetDescendants()) do
+            if mj:IsA("Motor6D") and mj.Part1 then
+                for _, cj in ipairs(char:GetDescendants()) do
+                    if cj:IsA("Motor6D") and cj.Name == mj.Name and cj.Part1 and cj.Part1.Name == mj.Part1.Name then
+                        cj.C0 = mj.C0
+                        cj.C1 = mj.C1
+                    end
+                end
+            end
+        end
+    end
+
+    local function bodySignature(container)
+        local total = 0
+        for _, o in ipairs(container:GetChildren()) do
+            if o:IsA("BasePart") and o.Name ~= "HumanoidRootPart" then
+                total = total + o.Size.Magnitude
+            end
+        end
+        return total
+    end
+
+    local function swapBodyParts(char, hum, model)
+        local prevNeck = hum.RequiresNeck
+        pcall(function() hum.RequiresNeck = false end)
+        local newParts = {}
+        for _, part in ipairs(model:GetChildren()) do
+            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
+                local ok, np, cf = pcall(swapPart, char, part)
+                if not ok then
+                    warn("[Skin] swap " .. part.Name .. ": " .. tostring(np))
+                elseif np then
+                    table.insert(newParts, { part = np, cframe = cf })
+                end
+            end
+        end
+        pcall(syncJoints, char, model)
+        local okFix, fixed = pcall(ensureAttached, char, newParts)
+        if okFix and fixed and fixed > 0 then
+            warn("[Skin] " .. tostring(fixed) .. " peca(s) soldadas no HumanoidRootPart (joint nao conectou)")
+        end
+        pcall(function() hum.RequiresNeck = prevNeck end)
+        pcall(function()
+            local modelHum = model:FindFirstChildOfClass("Humanoid")
+            if modelHum and modelHum.HipHeight > 0 and hum.RigType == Enum.HumanoidRigType.R15 then
+                hum.HipHeight = modelHum.HipHeight
+            end
+        end)
+        return #newParts
+    end
+
+    local function forceBodyScale(char, hum)
+        local source = copyState.desc or originalDesc
+        if not source or hum.RigType ~= Enum.HumanoidRigType.R15 then return false end
+        local model = buildModel(hum, source)
+        if not model then return false end
+        swapBodyParts(char, hum, model)
+        pcall(function() model:Destroy() end)
+        return true
+    end
+
+    local function rebuildFromModel(char, hum, desc, nativeOk)
+        local model = buildModel(hum, desc)
+        if not model then return false end
+        local isR15 = hum.RigType == Enum.HumanoidRigType.R15
+
+        if nativeOk and lookMatches(char, model) then
+            local total = countAccessories(model)
+            if isR15 then
+                writeScales(hum, scales)
+                task.wait(0.3)
+                local sigModel = bodySignature(model)
+                local sigChar = bodySignature(char)
+                if sigModel > 0 and math.abs(sigChar - sigModel) / sigModel > 0.03 then
+                    swapBodyParts(char, hum, model)
+                end
+            end
+            pcall(function() model:Destroy() end)
+            return total, total
+        end
+
+        if isR15 then
+            writeScales(hum, scales)
+            task.wait(0.3)
+        end
+
+        swapBodyParts(char, hum, model)
+
+        pcall(function()
+            local modelColors = model:FindFirstChildOfClass("BodyColors")
+            if modelColors then
+                for _, old in ipairs(char:GetChildren()) do
+                    if old:IsA("BodyColors") then
+                        old:Destroy()
+                    end
+                end
+                modelColors:Clone().Parent = char
+            end
+        end)
+
+        for _, old in ipairs(char:GetChildren()) do
+            if old:IsA("CharacterMesh") then
+                old:Destroy()
+            end
+        end
+        for _, obj in ipairs(model:GetChildren()) do
+            if obj:IsA("CharacterMesh") or obj:IsA("Shirt") or obj:IsA("Pants") or obj:IsA("ShirtGraphic") then
+                pcall(function() obj:Clone().Parent = char end)
+            end
+        end
+
+        local added, total = 0, 0
+        for _, acc in ipairs(model:GetChildren()) do
+            if acc:IsA("Accoutrement") then
+                total = total + 1
+                local okAttach, res = pcall(attachAccessory, char, hum, acc)
+                if okAttach and res then
+                    added = added + 1
+                end
+            end
+        end
+
+        pcall(function() model:Destroy() end)
+
+        if isR15 then
+            task.wait(0.1)
+            writeScales(hum, scales)
+        end
+        return added, total
+    end
+
+    local function applyCopiedDescriptionRaw(char, hum, desc, keepScales)
+        clearAllAccessories(char)
+        clearAllOutfit(char)
+        if not keepScales then
+            scalesFromDesc(desc)
+            refreshSliders()
+        end
+        local nativeOk = false
+        local okNative, nativeRes = pcall(applyDescriptionSafe, hum, desc)
+        if okNative and nativeRes then nativeOk = true end
+        local okModel, added, total = pcall(rebuildFromModel, char, hum, desc, nativeOk)
+        if okModel and added then
+            return added, total
+        end
+        local okCopy, a, t = pcall(manualCopy, char, hum, desc)
+        pcall(writeScales, hum, scales)
+        if okCopy then
+            return a, t
+        end
+        return 0, 0
+    end
+
+    local function fixCamera(hum)
+        local cam = workspace.CurrentCamera
+        if not cam or not hum then return end
+        local subject = cam.CameraSubject
+        if not subject or not subject:IsDescendantOf(workspace) then
+            cam.CameraSubject = hum
+        end
+    end
+
+    local function applyCopiedDescription(char, hum, desc, keepScales)
+        local added, total = applyCopiedDescriptionRaw(char, hum, desc, keepScales)
+        fixCamera(hum)
+        return added, total
+    end
+
+    local ANIM_SLOTS = {
+        {key = "IdleAnimation", folder = "idle", names = {"Animation1", "Animation2"}},
+        {key = "WalkAnimation", folder = "walk", names = {"WalkAnim"}},
+        {key = "RunAnimation", folder = "run", names = {"RunAnim"}},
+        {key = "JumpAnimation", folder = "jump", names = {"JumpAnim"}},
+        {key = "FallAnimation", folder = "fall", names = {"FallAnim"}},
+        {key = "ClimbAnimation", folder = "climb", names = {"ClimbAnim"}},
+        {key = "SwimAnimation", folder = "swim", names = {"Swim"}},
+    }
+
+    local function setAnimId(anim, value)
+        if animBackup[anim] == nil then
+            animBackup[anim] = anim.AnimationId
+        end
+        anim.AnimationId = value
+    end
+
+    local function restartAnimate(char)
+        local animate = char:FindFirstChild("Animate")
+        if not animate then return end
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        local animator = hum and hum:FindFirstChildOfClass("Animator")
+        if animator then
+            for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
+                -- so para as animacoes do script Animate (idle/walk/run...). As do jogo,
+                -- como a da espada, ficam tocando: parar elas deixava a espada sem pose.
+                local okFrom, fromAnimate = pcall(function()
+                    local a = track.Animation
+                    return a ~= nil and a:IsDescendantOf(animate)
+                end)
+                if okFrom and fromAnimate then
+                    pcall(function() track:Stop(0) end)
+                end
+            end
+        end
+        pcall(function() animate.Disabled = true end)
+        task.wait()
+        pcall(function() animate.Disabled = false end)
+    end
+
+    local function restoreAnimations(char)
+        for anim, original in pairs(animBackup) do
+            pcall(function()
+                if anim.Parent then
+                    anim.AnimationId = original
+                end
+            end)
+        end
+        animBackup = {}
+        if char then
+            pcall(restartAnimate, char)
+        end
+    end
+
+    local function applyAnimationsFromPlayer(char, otherPlayer)
+        local mine = char:FindFirstChild("Animate")
+        local theirChar = otherPlayer.Character
+        local theirs = theirChar and theirChar:FindFirstChild("Animate")
+        if not mine or not theirs then return 0 end
+        local count = 0
+        for _, folder in ipairs(theirs:GetChildren()) do
+            local myFolder = mine:FindFirstChild(folder.Name)
+            if myFolder then
+                for _, a in ipairs(folder:GetChildren()) do
+                    if a:IsA("Animation") and a.AnimationId ~= "" then
+                        local target = myFolder:FindFirstChild(a.Name)
+                        if target and target:IsA("Animation") then
+                            setAnimId(target, a.AnimationId)
+                            count = count + 1
+                        end
+                    end
+                end
+            end
+        end
+        return count
+    end
+
+    local function applyAnimationsFromDesc(char, desc)
+        local animate = char:FindFirstChild("Animate")
+        if not animate then return 0 end
+        local count = 0
+        for _, slot in ipairs(ANIM_SLOTS) do
+            local okId, rawId = pcall(function() return desc[slot.key] end)
+            local id = okId and tonumber(rawId) or 0
+            local folder = animate:FindFirstChild(slot.folder)
+            if folder and id and id > 0 then
+                local objs = loadAsset(id)
+                local anims = objs and findAll(objs, "Animation") or {}
+                if #anims > 0 then
+                    for i, name in ipairs(slot.names) do
+                        local target = folder:FindFirstChild(name)
+                        if target and target:IsA("Animation") then
+                            local src
+                            for _, a in ipairs(anims) do
+                                if a.Name == name then
+                                    src = a
+                                    break
+                                end
+                            end
+                            src = src or anims[i] or anims[1]
+                            setAnimId(target, src.AnimationId)
+                            count = count + 1
+                        end
+                    end
+                else
+                    local target = folder:FindFirstChild(slot.names[1])
+                    if target and target:IsA("Animation") then
+                        setAnimId(target, "rbxassetid://" .. fmtId(id))
+                        count = count + 1
+                    end
+                end
+                if objs then
+                    for _, o in ipairs(objs) do
+                        pcall(function() o:Destroy() end)
+                    end
+                end
+            end
+        end
+        return count
+    end
+
+    local function applyCopiedAnimations(char, desc, userId)
+        pcall(function() char:WaitForChild("Animate", 3) end)
+        restoreAnimations(nil)
+        local count = 0
+        local other = userId and Players:GetPlayerByUserId(userId)
+        if other and other ~= LP then
+            local ok, n = pcall(applyAnimationsFromPlayer, char, other)
+            if ok and n then count = n end
+        end
+        if count == 0 then
+            local ok, n = pcall(applyAnimationsFromDesc, char, desc)
+            if ok and n then count = n end
+        end
+        if count > 0 then
+            pcall(restartAnimate, char)
+        end
+        return count
+    end
+
+    local function collectEmotes(desc)
+        local list, seen = {}, {}
+        local okAll, all = pcall(function() return desc:GetEmotes() end)
+        local okEq, equipped = pcall(function() return desc:GetEquippedEmotes() end)
+        if not okAll or type(all) ~= "table" then
+            all = {}
+        end
+        if okEq and type(equipped) == "table" then
+            table.sort(equipped, function(a, b)
+                return (a.Slot or 0) < (b.Slot or 0)
+            end)
+            for _, e in ipairs(equipped) do
+                local ids = all[e.Name]
+                if type(ids) == "table" and ids[1] and not seen[e.Name] then
+                    seen[e.Name] = true
+                    table.insert(list, { name = e.Name, id = ids[1] })
+                end
+            end
+        end
+        local extra = {}
+        for name, ids in pairs(all) do
+            if not seen[name] and type(ids) == "table" and ids[1] then
+                table.insert(extra, { name = name, id = ids[1] })
+            end
+        end
+        table.sort(extra, function(a, b) return a.name < b.name end)
+        for _, e in ipairs(extra) do
+            table.insert(list, e)
+        end
+        return list
+    end
+
+    local function stopEmote()
+        if emoteConn then
+            emoteConn:Disconnect()
+            emoteConn = nil
+        end
+        if emoteTrack then
+            local track = emoteTrack
+            emoteTrack = nil
+            pcall(function() track:Stop() end)
+            pcall(function() track:Destroy() end)
+        end
+    end
+
+    local function playEmote(name, id)
+        local char = LP.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if not hum then return false end
+        stopEmote()
+        local animator = hum:FindFirstChildOfClass("Animator") or hum
+        local anim = Instance.new("Animation")
+        anim.AnimationId = "rbxassetid://" .. fmtId(id)
+        local okLoad, track = pcall(function()
+            return animator:LoadAnimation(anim)
+        end)
+        if okLoad and track then
+            local started = os.clock()
+            while track.Length == 0 and os.clock() - started < 2 do
+                task.wait()
+            end
+            if track.Length > 0 then
+                track.Priority = Enum.AnimationPriority.Action
+                track:Play()
+                emoteTrack = track
+                emoteConn = hum.Running:Connect(function(speed)
+                    if speed > 0.5 then
+                        stopEmote()
+                    end
+                end)
+                return true
+            end
+            pcall(function() track:Destroy() end)
+        end
+        local okEmote, played = pcall(function()
+            return hum:PlayEmote(name)
+        end)
+        return okEmote and played == true
+    end
+
+    local function setIdentity(userId, name)
+        if not originalIdentity then
+            originalIdentity = { userId = LP.UserId, name = LP.Name }
+        end
+        local okId = pcall(function() LP.UserId = userId end)
+        if not okId and type(sethiddenproperty) == "function" then
+            pcall(sethiddenproperty, LP, "UserId", userId)
+        end
+        if name and name ~= "" then
+            pcall(function() LP.Name = name end)
+        end
+    end
+
+    local function restoreIdentity()
+        if not originalIdentity then return end
+        local okId = pcall(function() LP.UserId = originalIdentity.userId end)
+        if not okId and type(sethiddenproperty) == "function" then
+            pcall(sethiddenproperty, LP, "UserId", originalIdentity.userId)
+        end
+        pcall(function() LP.Name = originalIdentity.name end)
+        originalIdentity = nil
+    end
+
+    local function revertCopy()
+        if not copyState.desc then return "Nothing to undo" end
+        local char = LP.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if not hum then return "No character" end
+        if not originalDesc then return "No original saved" end
+
+        copyState.desc = nil
+        copyState.userId = nil
+        copyState.name = nil
+        copyState.emotes = {}
+
+        stopEmote()
+        clearAllAccessories(char)
+        clearAllOutfit(char)
+        for _, old in ipairs(char:GetChildren()) do
+            if old:IsA("CharacterMesh") then
+                old:Destroy()
+            end
+        end
+        applyCopiedDescription(char, hum, originalDesc)
+        restoreAnimations(char)
+        restoreIdentity()
+        scalesTouched = false
+        applyExtras()
+        return "Copy undone"
+    end
+
+    local function copyPlayer(text)
+        local char = LP.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if not hum then return "No character" end
+
+        local userId = resolveUserId(text)
+        if not userId then return "Player not found" end
+
+        local desc = fetchDescription(userId)
+        if not desc then return "Could not load avatar" end
+
+        captureOriginal(hum)
+
+        local okName, fetched = pcall(function()
+            return Players:GetNameFromUserIdAsync(userId)
+        end)
+        local personName
+        if okName and type(fetched) == "string" and fetched ~= "" then
+            personName = fetched
+        else
+            local typed = trim(text)
+            personName = tonumber(typed) and tostring(userId) or typed
+        end
+
+        stopEmote()
+        copyState.desc = desc
+        copyState.userId = userId
+        copyState.name = personName
+        copyState.emotes = collectEmotes(desc)
+
+        applyCopiedDescription(char, hum, desc)
+        pcall(applyCopiedAnimations, char, desc, userId)
+        if copyIdentity then
+            setIdentity(userId, personName)
+        end
+        applyExtras()
+
+        return "Copied: " .. personName
+    end
+
+    local NUM_KEYS = {
+        "Head", "Torso", "LeftArm", "RightArm", "LeftLeg", "RightLeg",
+        "Face", "Shirt", "Pants", "GraphicTShirt",
+        "ClimbAnimation", "FallAnimation", "IdleAnimation", "JumpAnimation",
+        "MoodAnimation", "RunAnimation", "SwimAnimation", "WalkAnimation",
+    }
+    local COLOR_KEYS = {
+        "HeadColor", "TorsoColor", "LeftArmColor", "RightArmColor", "LeftLegColor", "RightLegColor",
+    }
+
+    local function vecToTable(v)
+        if typeof(v) == "Vector3" then
+            return { v.X, v.Y, v.Z }
+        end
+        return nil
+    end
+
+    local function tableToVec(t)
+        if type(t) == "table" and tonumber(t[1]) and tonumber(t[2]) and tonumber(t[3]) then
+            return Vector3.new(tonumber(t[1]), tonumber(t[2]), tonumber(t[3]))
+        end
+        return nil
+    end
+
+    local function serializeDesc(desc)
+        local out = { n = {}, c = {}, s = {}, sc = {}, acc = {}, em = {}, eq = {} }
+        for _, k in ipairs(NUM_KEYS) do
+            local ok, v = pcall(function() return desc[k] end)
+            if ok and type(v) == "number" and v ~= 0 then
+                out.n[k] = fmtId(v)
+            end
+        end
+        for _, k in ipairs(COLOR_KEYS) do
+            local ok, v = pcall(function() return desc[k] end)
+            if ok and typeof(v) == "Color3" then
+                out.c[k] = { v.R, v.G, v.B }
+            end
+        end
+        for _, k in ipairs(ACCESSORY_KEYS) do
+            local ok, v = pcall(function() return desc[k] end)
+            if ok and type(v) == "string" and v ~= "" then
+                out.s[k] = v
+            end
+        end
+        for i, def in ipairs(SCALE_DEFS) do
+            out.sc[def.desc] = scales[i]
+        end
+        local okAcc, accs = pcall(function() return desc:GetAccessories(true) end)
+        if okAcc and type(accs) == "table" then
+            for _, a in ipairs(accs) do
+                local okT, tname = pcall(function() return a.AccessoryType.Name end)
+                if okT and tname and tonumber(a.AssetId) then
+                    local e = { id = fmtId(a.AssetId), t = tname, l = a.IsLayered and true or false }
+                    if type(a.Order) == "number" then e.o = a.Order end
+                    if type(a.Puffiness) == "number" then e.p = a.Puffiness end
+                    e.pos = vecToTable(a.Position)
+                    e.rot = vecToTable(a.Rotation)
+                    e.scl = vecToTable(a.Scale)
+                    table.insert(out.acc, e)
+                end
+            end
+        end
+        local okEm, all = pcall(function() return desc:GetEmotes() end)
+        if okEm and type(all) == "table" then
+            for name, ids in pairs(all) do
+                if type(ids) == "table" then
+                    local arr = {}
+                    for _, id in ipairs(ids) do
+                        table.insert(arr, fmtId(id))
+                    end
+                    if #arr > 0 then out.em[name] = arr end
+                end
+            end
+        end
+        local okEq, equipped = pcall(function() return desc:GetEquippedEmotes() end)
+        if okEq and type(equipped) == "table" then
+            for _, e in ipairs(equipped) do
+                if e.Name and e.Slot then
+                    table.insert(out.eq, { Slot = e.Slot, Name = e.Name })
+                end
+            end
+        end
+        return out
+    end
+
+    local function deserializeDesc(data)
+        local desc = Instance.new("HumanoidDescription")
+        for k, v in pairs(data.n or {}) do
+            local n = tonumber(v)
+            if n then pcall(function() desc[k] = n end) end
+        end
+        for k, c in pairs(data.c or {}) do
+            if type(c) == "table" and tonumber(c[1]) and tonumber(c[2]) and tonumber(c[3]) then
+                pcall(function() desc[k] = Color3.new(tonumber(c[1]), tonumber(c[2]), tonumber(c[3])) end)
+            end
+        end
+        for k, v in pairs(data.s or {}) do
+            if type(v) == "string" then pcall(function() desc[k] = v end) end
+        end
+        for k, v in pairs(data.sc or {}) do
+            local n = tonumber(v)
+            if n then pcall(function() desc[k] = n end) end
+        end
+        local list = {}
+        for _, e in ipairs(data.acc or {}) do
+            local okT, accType = pcall(function() return Enum.AccessoryType[e.t] end)
+            local id = tonumber(e.id)
+            if okT and accType and id then
+                local entry = { AssetId = id, AccessoryType = accType, IsLayered = e.l and true or false }
+                if tonumber(e.o) then entry.Order = tonumber(e.o) end
+                if tonumber(e.p) then entry.Puffiness = tonumber(e.p) end
+                local pos = tableToVec(e.pos)
+                local rot = tableToVec(e.rot)
+                local scl = tableToVec(e.scl)
+                if pos then entry.Position = pos end
+                if rot then entry.Rotation = rot end
+                if scl then entry.Scale = scl end
+                table.insert(list, entry)
+            end
+        end
+        if #list > 0 then
+            pcall(function() desc:SetAccessories(list, true) end)
+        end
+        local em = {}
+        for name, ids in pairs(data.em or {}) do
+            local arr = {}
+            if type(ids) == "table" then
+                for _, id in ipairs(ids) do
+                    local n = tonumber(id)
+                    if n then table.insert(arr, n) end
+                end
+            end
+            if #arr > 0 then em[name] = arr end
+        end
+        pcall(function() desc:SetEmotes(em) end)
+        local eq = {}
+        for _, e in ipairs(data.eq or {}) do
+            if type(e) == "table" and e.Name and tonumber(e.Slot) then
+                table.insert(eq, { Slot = tonumber(e.Slot), Name = e.Name })
+            end
+        end
+        pcall(function() desc:SetEquippedEmotes(eq) end)
+        return desc
+    end
+
+    local scaleToken = 0
+    local scaleSig = nil
+
+    local function onScaleChanged(index, value)
+        local hum = getHum()
+        if not hum then return end
+        if not scalesTouched then
+            captureOriginal(hum)
+        end
+        scalesTouched = true
+        if hum.RigType ~= Enum.HumanoidRigType.R15 then
+            setStatus("Proportions need R15")
+            return
+        end
+        if scaleSig == nil then
+            local char = LP.Character
+            scaleSig = char and bodySignature(char) or nil
+        end
+        writeScale(hum, index, value)
+        scaleToken = scaleToken + 1
+        local token = scaleToken
+        task.delay(0.5, function()
+            if token ~= scaleToken then return end
+            local before = scaleSig
+            scaleSig = nil
+            local char = LP.Character
+            local h = getHum()
+            if char and h and before and h.RigType == Enum.HumanoidRigType.R15 then
+                if math.abs(bodySignature(char) - before) < 0.001 then
+                    pcall(forceBodyScale, char, h)
+                end
+            end
+        end)
+    end
+
+    local skinInput
+    local busy = false
+
+    local function doCopy()
+        if busy then return end
+        busy = true
+        setStatus("Searching...")
+        local ok, msg = pcall(copyPlayer, skinInput.Text)
+        setStatus(ok and msg or "Error while copying")
+        refreshSliders()
+        refreshEmoteList()
+        busy = false
+    end
+
+    local function doUndo()
+        if busy then return end
+        busy = true
+        local ok, msg = pcall(revertCopy)
+        setStatus(ok and msg or "Error while undoing")
+        refreshSliders()
+        refreshEmoteList()
+        busy = false
+    end
+
+    local function getLook()
+        local hum = getHum()
+        local desc = copyState.desc
+        if not desc and hum then
+            local ok, d = pcall(function() return hum:GetAppliedDescription() end)
+            if ok and d then
+                desc = d
+                if not scalesTouched then
+                    pcall(scalesFromDesc, desc)
+                    pcall(readScalesFromHumanoid, hum)
+                    refreshSliders()
+                end
+            end
+        end
+        desc = desc or originalDesc
+        if not desc then return nil end
+        return { v = 1, d = serializeDesc(desc) }
+    end
+
+    local function applyLook(data)
+        if type(data) ~= "table" or type(data.d) ~= "table" then return end
+        local char = LP.Character
+        local hum = getHum()
+        if not char or not hum then
+            setStatus("No character")
+            return
+        end
+        local desc = deserializeDesc(data.d)
+        captureOriginal(hum)
+        stopEmote()
+        restoreIdentity()
+        copyState.desc = desc
+        copyState.userId = nil
+        copyState.name = nil
+        copyState.emotes = collectEmotes(desc)
+        scalesTouched = false
+        applyCopiedDescription(char, hum, desc)
+        pcall(applyCopiedAnimations, char, desc, nil)
+        applyExtras()
+        refreshSliders()
+        refreshEmoteList()
+    end
+
+    lib:MakeSeparator(skinPage, "AVATAR COPY")
+
+    -- ATENCAO: o Auto Parry compara ball:GetAttribute("target") com LocalPlayer.Name,
+    -- entao trocar o nome do LocalPlayer quebra o parry. Por isso nasce DESLIGADO.
+    local identityToggle = lib:AddToggle(skinPage, "Copy Name & UserId", function(v)
+        copyIdentity = v
+        if v then
+            pcall(function() lib:Notify("Copy Name & UserId pode quebrar o Auto Parry", 4) end)
+            if copyState.userId then
+                setIdentity(copyState.userId, copyState.name)
+            end
+        else
+            restoreIdentity()
+        end
+    end, nil, "skin.copyidentity")
+    identityToggle.SetState(false, false)
+
+    local inputRow = lib:MakeRow(skinPage, 34)
+    lib:MakeLabel(inputRow, "User", 10, 50)
+    skinInput = lib:MakeTextBox(inputRow, "", "Username / UserId", 0, 0)
+    skinInput.Size = UDim2.new(1, -74, 0, 22)
+    skinInput.Position = UDim2.new(0, 64, 0.5, -11)
+
+    lib:AddButtonRow(skinPage, {
+        { "COPY", doCopy },
+        { "UNDO", doUndo },
+    })
+
+    local _, statusLbl = lib:MakeSeparator(skinPage, "")
+    setStatus = function(t)
+        statusLbl.Text = tostring(t or "")
+    end
+
+    lib:MakeSeparator(skinPage, "EXTRAS")
+
+    lib:AddSkinToggle("Korblox", function(v)
+        extras.korblox = v
+        if LP.Character then applyExtras() end
+    end, false, "avatar.korblox")
+
+    local hornNames = { "OFF" }
+    for _, h in ipairs(HORN_OPTIONS) do
+        table.insert(hornNames, h.label)
+    end
+    lib:AddSkinDropdown("Horns", hornNames, "OFF", function(v)
+        local idx = 0
+        for i, h in ipairs(HORN_OPTIONS) do
+            if h.label == v then idx = i end
+        end
+        extras.horns = idx
+        if LP.Character then applyExtras() end
+    end, "avatar.horns", true)
+
+    lib:MakeSeparator(skinPage, "PROPORTIONS")
+
+    local sliderCtl = {}
+    for i, def in ipairs(SCALE_DEFS) do
+        sliderCtl[i] = lib:_InSkins(function()
+            return lib:MakeSlider(skinPage, def.label, def.min, def.max, def.default, 2, function(v)
+                if suppressScale or not uiReady then return end
+                scales[i] = v
+                onScaleChanged(i, v)
+            end, "avatar.scale." .. def.desc)
+        end)
+    end
+
+    refreshSliders = function()
+        suppressScale = true
+        for i = 1, #SCALE_DEFS do
+            pcall(sliderCtl[i].SetValue, scales[i])
+        end
+        suppressScale = false
+    end
+
+    lib:MakeSeparator(skinPage, "EMOTES")
+
+    local emoteDrop = lib:AddDropdown(skinPage, "Emote", {}, nil, function(v)
+        if not v then return end
+        for _, e in ipairs(copyState.emotes or {}) do
+            if e.name == v then
+                setStatus("Emote: " .. v)
+                task.spawn(function()
+                    local ok, played = pcall(playEmote, e.name, e.id)
+                    if not ok or not played then
+                        setStatus("Emote failed: " .. v)
+                    end
+                end)
+                return
+            end
+        end
+    end, false, true)
+
+    refreshEmoteList = function()
+        local names = {}
+        for _, e in ipairs(copyState.emotes or {}) do
+            table.insert(names, e.name)
+        end
+        emoteDrop.SetOptions(names)
+    end
+
+    lib:AddButton(skinPage, "Stop Emote", function()
+        stopEmote()
+        setStatus("Emote stopped")
+    end)
+
+    lib:_InSkins(function()
+        lib:RegisterFlag("avatar.look", getLook, applyLook)
+    end)
+
+    uiReady = true
+
+    local function handleMesh(handle)
+        if not handle then return "" end
+        if handle:IsA("MeshPart") then return handle.MeshId end
+        local sm = handle:FindFirstChildWhichIsA("SpecialMesh")
+        return sm and sm.MeshId or ""
+    end
+
+    local function accessoryMeshes(container)
+        local out = {}
+        for _, o in ipairs(container:GetChildren()) do
+            if o:IsA("Accoutrement") then
+                local key = handleMesh(o:FindFirstChild("Handle"))
+                out[key] = (out[key] or 0) + 1
+            end
+        end
+        return out
+    end
+
+    local function appearanceOk(char, hum, desc)
+        local model = buildModel(hum, desc)
+        if not model then return true end
+        local ok = lookMatches(char, model)
+        if ok then
+            local have, want = accessoryMeshes(char), accessoryMeshes(model)
+            for k, v in pairs(want) do
+                if have[k] ~= v then ok = false end
+            end
+            for k, v in pairs(have) do
+                if want[k] ~= v then ok = false end
+            end
+            local cp = char:FindFirstChildOfClass("Pants")
+            local mp = model:FindFirstChildOfClass("Pants")
+            if (cp and cp.PantsTemplate) ~= (mp and mp.PantsTemplate) then ok = false end
+        end
+        pcall(function() model:Destroy() end)
+        return ok
+    end
+
+    -- ===== PROTECAO DA ESPADA (e de qualquer item do jogo preso no personagem) =====
+    -- No Blade Ball a espada e um Model filho do personagem, preso por uma junta numa
+    -- parte do corpo. Ao reaplicar o avatar logo apos o respawn o corpo e mexido
+    -- (ApplyDescription / troca de partes) e a espada pode perder a junta ou a
+    -- animacao e aparecer no meio das pernas apontando pra cima. Antes de mexer a
+    -- gente guarda como ela estava presa e, se algo quebrar, refaz igual.
+    local GEAR_IGNORE = { ExtraHorns = true, KorbloxLeg = true }
+
+    local function gearRoot(char, inst)
+        local top = inst
+        while top and top.Parent and top.Parent ~= char do
+            top = top.Parent
+        end
+        if top and top.Parent == char and (top:IsA("Model") or top:IsA("Tool")) and not GEAR_IGNORE[top.Name] then
+            return top
+        end
+        return nil
+    end
+
+    local function findGear(char)
+        for _, o in ipairs(char:GetChildren()) do
+            if (o:IsA("Model") or o:IsA("Tool")) and not GEAR_IGNORE[o.Name] then
+                return o
+            end
+        end
+        return nil
+    end
+
+    local function snapshotGear(char)
+        local snap = { joints = {}, tracks = {} }
+        for _, d in ipairs(char:GetDescendants()) do
+            if d:IsA("JointInstance") or d:IsA("WeldConstraint") then
+                local p0, p1 = d.Part0, d.Part1
+                local g0 = p0 and gearRoot(char, p0)
+                local g1 = p1 and gearRoot(char, p1)
+                -- so interessa a junta que liga o item ao corpo (uma ponta em cada lado)
+                if (g0 or g1) and not (g0 and g1) then
+                    local gearIs0 = g0 ~= nil
+                    local bodyPart = gearIs0 and p1 or p0
+                    local isJoint = d:IsA("JointInstance")
+                    table.insert(snap.joints, {
+                        inst = d,
+                        class = d.ClassName,
+                        name = d.Name,
+                        parent = d.Parent,
+                        parentIsLimb = d.Parent ~= nil and d.Parent.Parent == char,
+                        parentName = d.Parent and d.Parent.Name or nil,
+                        gearIs0 = gearIs0,
+                        gearPart = gearIs0 and p0 or p1,
+                        bodyPart = bodyPart,
+                        bodyName = bodyPart and bodyPart.Name or nil,
+                        c0 = isJoint and d.C0 or nil,
+                        c1 = isJoint and d.C1 or nil,
+                    })
+                end
+            end
+        end
+
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        local animator = hum and hum:FindFirstChildOfClass("Animator")
+        local animate = char:FindFirstChild("Animate")
+        if animator then
+            for _, t in ipairs(animator:GetPlayingAnimationTracks()) do
+                local okInfo, own = pcall(function()
+                    local a = t.Animation
+                    local fromAnimate = animate ~= nil and a ~= nil and a:IsDescendantOf(animate)
+                    return t.Looped and not fromAnimate and t ~= emoteTrack
+                end)
+                if okInfo and own then
+                    table.insert(snap.tracks, t)
+                end
+            end
+        end
+        return snap
+    end
+
+    local function restoreGear(char, snap)
+        local fixedJoints, replayed = 0, 0
+        for _, s in ipairs(snap.joints) do
+            pcall(function()
+                -- o item sumiu (o jogo desequipou/trocou): nao mexe
+                if not s.gearPart or not s.gearPart:IsDescendantOf(char) then return end
+
+                local body = s.bodyPart
+                if not body or not body:IsDescendantOf(char) then
+                    -- o membro foi trocado por outro: acha o novo pelo nome
+                    body = s.bodyName and char:FindFirstChild(s.bodyName)
+                    if not body or not body:IsA("BasePart") then return end
+                end
+
+                local want0 = s.gearIs0 and s.gearPart or body
+                local want1 = s.gearIs0 and body or s.gearPart
+                local j = s.inst
+
+                if j.Parent == nil or not j:IsDescendantOf(char) then
+                    -- a junta morreu junto com o membro antigo: recria igual
+                    local nj = Instance.new(s.class)
+                    nj.Name = s.name
+                    nj.Part0 = want0
+                    nj.Part1 = want1
+                    if s.c0 then
+                        nj.C0 = s.c0
+                        nj.C1 = s.c1
+                    end
+                    local par = s.parent
+                    if s.parentIsLimb then
+                        par = char:FindFirstChild(s.parentName) or body
+                    elseif not par or not par:IsDescendantOf(char) then
+                        par = s.gearPart
+                    end
+                    nj.Parent = par
+                    s.inst = nj
+                    fixedJoints = fixedJoints + 1
+                    return
+                end
+
+                -- junta viva: so corrige se alguma ponta ficou apontando pro membro antigo
+                local changed = false
+                if j.Part0 ~= want0 then
+                    j.Part0 = want0
+                    changed = true
+                end
+                if j.Part1 ~= want1 then
+                    j.Part1 = want1
+                    changed = true
+                end
+                if changed then
+                    fixedJoints = fixedJoints + 1
+                end
+            end)
+        end
+
+        for _, t in ipairs(snap.tracks) do
+            pcall(function()
+                if not t.IsPlaying then
+                    t:Play(0.1)
+                    replayed = replayed + 1
+                end
+            end)
+        end
+
+        if fixedJoints > 0 or replayed > 0 then
+            warn("[Avatar] item do jogo (espada) restaurado: " .. fixedJoints .. " junta(s), " .. replayed .. " animacao(oes)")
+        end
+    end
+
+    local function loadSkinNow(char, hum, token)
+        animBackup = {}
+        stopEmote()
+
+        if copyState.desc then
+            local gear = snapshotGear(char)
+            applyCopiedDescription(char, hum, copyState.desc, true)
+            restoreGear(char, gear)
+            pcall(applyCopiedAnimations, char, copyState.desc, copyState.userId)
+            restoreGear(char, gear)
+            for _ = 1, 2 do
+                task.wait(1.5)
+                if token ~= loadToken or not copyState.desc then break end
+                local okCheck, matches = pcall(appearanceOk, char, hum, copyState.desc)
+                if not okCheck or matches then break end
+                applyCopiedDescription(char, hum, copyState.desc, true)
+                restoreGear(char, gear)
+            end
+            task.wait(0.5)
+            restoreGear(char, gear)
+        elseif scalesTouched then
+            writeScales(hum, scales)
+        end
+        if token == loadToken then
+            applyExtras()
+        end
+    end
+
+    charConn = LP.CharacterAdded:Connect(function(char)
+        loadToken = loadToken + 1
+        local token = loadToken
+
+        local appearanceLoaded = false
+        local conn = LP.CharacterAppearanceLoaded:Connect(function(c)
+            if c == char then appearanceLoaded = true end
+        end)
+
+        local started = os.clock()
+        while os.clock() - started < 5 do
+            if token ~= loadToken then
+                conn:Disconnect()
+                return
+            end
+            task.wait(0.25)
+        end
+
+        local extraStart = os.clock()
+        while not appearanceLoaded and os.clock() - extraStart < 5 do
+            if token ~= loadToken then
+                conn:Disconnect()
+                return
+            end
+            task.wait(0.25)
+        end
+        conn:Disconnect()
+
+        if token ~= loadToken or not char.Parent then return end
+
+        -- espera a espada (item do jogo) estar equipada antes de mexer no corpo, pra nao
+        -- competir com o jogo enquanto ele ainda monta o personagem. Se nao aparecer
+        -- nenhum item em 4s segue normal.
+        local gearStart = os.clock()
+        while not findGear(char) and os.clock() - gearStart < 4 do
+            if token ~= loadToken or not char.Parent then return end
+            task.wait(0.25)
+        end
+        task.wait(0.5)
+        if token ~= loadToken or not char.Parent then return end
+
+        local hum = char:FindFirstChildOfClass("Humanoid") or char:WaitForChild("Humanoid", 5)
+        if not hum then return end
+        loadSkinNow(char, hum, token)
+    end)
+end)
+
+if not LocalPlayer.Character then LocalPlayer.CharacterAdded:Wait() end
+
+local Alive   = Workspace:FindFirstChild("Alive") or Workspace:WaitForChild("Alive")
+local Runtime = Workspace.Runtime
+
+local function w2()
+    local touch = UserInputService.TouchEnabled
+    local mouse = UserInputService.MouseEnabled
+    local keyboard = UserInputService.KeyboardEnabled
+    if touch and not keyboard then return true end
+    if touch and not mouse then return true end
+    return false
+end
+
+local System = {
+    __properties = {
+        __autoparry_enabled = false,
+        __triggerbot_enabled = false,
+        __manual_spam_enabled = false,
+        __auto_spam_enabled = false,
+        __play_animation = false,
+        __accuracy = 50,
+        __divisor_multiplier = 1.1,
+        __parried = false,
+        __training_parried = false,
+        __spam_threshold = 1.5,
+        __parries = 0,
+        __parry_key = nil,
+        __grab_animation = nil,
+        __tornado_time = tick(),
+        __first_parry_done = false,
+        __connections = {},
+        __reverted_remotes = {},
+        __spam_accumulator = 0,
+        __spam_rate = 340,
+        __infinity_active = false,
+        __deathslash_active = false,
+        __timehole_active = false,
+        __slashesoffury_active = false,
+        __slashesoffury_count = 0,
+        __pull_active = false,
+        __pull_flipped = false,
+        __pull_until = 0,
+        __pull_arm = 0,
+        __pull_last = 0,
+        __is_mobile = w2(),
+        __mobile_guis = {},
+        __randomized_accuracy_enabled = false,
+        __speed_display_enabled = false,
+        __auto_jump_enabled = false,
+        __ball_speed = 0,
+        __peak_ball_speed = 0,
+        __thunder_dash_enabled = false,
+        __ball_velocity_gui = nil,
+        __ball_velocity_enabled = false,
+        __peak_velocity = 0,
+        __last_ball_id = nil,
+        __ping_label = nil
+    },
+    __config = {
+        __curve_names = {"Camera", "Random", "Accelerated", "Backwards", "Slow", "High", "Normal", "Speed", "Down"},
+        __detections = {
+            __infinity=false,__deathslash=false,
+            __timehole=false,__slashesoffury=false,__phantom=false,__pull=false
+        },
+        __pull_hold = 0.6,
+        __pull_notify = false
+    },
+    __triggerbot = {
+        __enabled=false,__is_parrying=false,
+        __parries=0,__max_parries=10000,__parry_delay=0.05
+    }
+}
+
+local CURVE_NAMES = {"Camera","Random","Accelerated","Backwards","Slow","High","Normal","Speed","Down","Left","Right"}
+local z2 = "Camera"
+local CurveType = "Camera"
+
+local function f2()
+    System.__properties.__divisor_multiplier = 0.7 + (System.__properties.__accuracy - 1) * (0.9/99)
+end
+
+local function d2()
+    if not System.__properties.__randomized_accuracy_enabled then return end
+    local ping_str = Stats.Network.ServerStatsItem["Data Ping"]:GetValueString()
+    local ping = tonumber(ping_str:match("%d+")) or 0
+    local new_accuracy
+    if ping >= 90 then new_accuracy = 4
+    elseif ping <= 50 then new_accuracy = math.random(70, 100)
+    else new_accuracy = System.__properties.__accuracy end
+    if new_accuracy then System.__properties.__accuracy = new_accuracy; f2() end
+end
+
+task.spawn(function()
+    while task.wait(1) do
+        if System.__properties.__randomized_accuracy_enabled then d2() end
+    end
+end)
+
+local replicated_storage = cloneref(game:GetService("ReplicatedStorage"))
+local workspace = cloneref(game:GetService("Workspace"))
+
+local _token
+local _tokenFound = false
+
+for _, Function in getgc(true) do
+    if type(Function) ~= "function" or not debug.info(Function, "s"):find("PRY", 1, true) then
+        continue
+    end
+    for _, value in debug.getupvalues(Function) do
+        if type(value) == "function" then
+            _token = value
+            _tokenFound = true
+            break
+        end
+    end
+    if _token then break end
+end
+
+if not _tokenFound then
+    Fluent:Notify({Title="MitHub", Content="Token not found! Re-inject and try again.", Duration=5})
+    return
+end
+
+function m2(_remote_uid)
+    local time = tostring(math.floor(workspace:GetServerTimeNow() * 100))
+    local key = _token(_remote_uid, "TIME")
+    local characters = table.create(#time)
+    for index = 1, #time do
+        characters[index] = string.char(bit32.bxor(
+            (string.byte(time, index ) + index) % 256,
+            string.byte(key, (index - 1) % #key + 1)
+        ))
+    end
+    return table.concat(characters)
+end
+
+local _reverted = {}
+local _original = {}
+local _captured = nil
+local n2 = nil
+local v3 = nil
+
+function r3(args)
+    if not args or #args < 8 then return false end
+    return true
+end
+
+function k3(remote)
+    if not remote then return end
+    if _reverted[remote] then return end
+    if _original[getrawmetatable(remote)] then return end
+
+    _original[getrawmetatable(remote)] = true
+    local _meta = getrawmetatable(remote)
+    setreadonly(_meta, false)
+
+    local _old = _meta.__index
+    _meta.__index = function(self, key)
+        if (key == "FireServer" and self:IsA("RemoteEvent")) or
+           (key == "InvokeServer" and self:IsA("RemoteFunction")) then
+            return function(_, ...)
+                local _arguments = {...}
+                if r3(_arguments) then
+                    if not _reverted[self] then
+                        _reverted[self] = _arguments
+                        _captured = { remote = self, args = _arguments }
+                        n2 = self
+                        v3 = _arguments
+                    end
+                end
+                return _old(self, key)(_, unpack(_arguments))
+            end
+        end
+        return _old(self, key)
+    end
+    setreadonly(_meta, true)
+end
+
+for _, _remote in pairs(replicated_storage:GetDescendants()) do
+    if _remote:IsA("RemoteEvent") or _remote:IsA("RemoteFunction") then
+        k3(_remote)
+    end
+end
+
+task.wait(5)
+
+task.spawn(function()
+    local attempts = 0
+    while not n2 and attempts < 30 do
+        task.wait(1)
+        attempts = attempts + 1
+    end
+    if n2 then
+        Fluent:Notify({Title="MitHub", Content="Anti-cheat Bypassed", Duration=3})
+    else
+        Fluent:Notify({Title="MitHub", Content="Remote not found, Please parry 1 time manually.", Duration=5})
+    end
+end)
+
+local function u3(curveCF)
+    if not n2 or not v3 then
+        return false
+    end
+
+    local cam = Workspace.CurrentCamera
+    local is_mobile = System.__properties.__is_mobile
+    local aim_target
+
+    if is_mobile then
+        local vp = cam.ViewportSize
+        aim_target = {math.floor(vp.X / 2), math.floor(vp.Y / 2)}
+    else
+        local ok, mouse = pcall(function() return UserInputService:GetMouseLocation() end)
+        if ok and mouse then
+            aim_target = {math.floor(mouse.X), math.floor(mouse.Y)}
+        else
+            local vp = cam.ViewportSize
+            aim_target = {math.floor(vp.X / 2), math.floor(vp.Y / 2)}
+        end
+    end
+
+    local event_data = {}
+    if Alive then
+        for _, entity in pairs(Alive:GetChildren()) do
+            if entity.PrimaryPart then
+                local ok, sp = pcall(function() return cam:WorldToScreenPoint(entity.PrimaryPart.Position) end)
+                if ok then event_data[entity.Name] = sp end
+            end
+        end
+    end
+
+    local packet = {
+        v3[1],
+        v3[2],
+        m2(v3[2]),
+        0.5,
+        curveCF or cam.CFrame,
+        event_data,
+        aim_target,
+        false
+    }
+
+    pcall(function()
+        if n2:IsA("RemoteEvent") then
+            n2:FireServer(unpack(packet))
+        elseif n2:IsA("RemoteFunction") then
+            n2:InvokeServer(unpack(packet))
+        end
+    end)
+    return true
+end
+
+System.animation = {}
+
+local SwordAPI = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("SwordAPI")
+local LastPlayedd = 0
+local Sword_CP = false
+local Sword_Spped = 1
+local Grab_Parry = nil
+local p3 = {}
+
+local function c3(swordName)
+    if not swordName or swordName == "" then
+        return SwordAPI.Collection.Default:FindFirstChild("GrabParry")
+    end
+    if p3[swordName] then return p3[swordName] end
+    local ok, swordData = pcall(function()
+        return ReplicatedStorage.Shared["ReplicatedInstances"]["Swords"].GetSword:Invoke(swordName)
+    end)
+    if not ok or not swordData or type(swordData) ~= "table" or not swordData.AnimationType then
+        p3[swordName] = SwordAPI.Collection.Default:FindFirstChild("GrabParry")
+        return p3[swordName]
+    end
+    for _, obj in pairs(SwordAPI.Collection:GetChildren()) do
+        if obj.Name == swordData.AnimationType then
+            local anim = obj:FindFirstChild("GrabParry") or obj:FindFirstChild("Grab")
+            if anim then
+                p3[swordName] = anim
+                return anim
+            end
+        end
+    end
+    p3[swordName] = SwordAPI.Collection.Default:FindFirstChild("GrabParry")
+    return p3[swordName]
+end
+
+local function x3(track)
+    if not track then return end
+    pcall(function()
+        track:Play(
+            track:GetAttribute("PlayFadeTime") or 0,
+            track:GetAttribute("PlayWeight") or 1,
+            track:GetAttribute("PlaySpeed") or 1
+        )
+    end)
+end
+
+local function q3(track)
+    if not track then return end
+    pcall(function()
+        track:Stop(track:GetAttribute("StopFadeTime") or 0.1)
+    end)
+end
+
+function System.animation.play_grab_parry()
+    if not System.__properties.__play_animation then return end
+    if not ((os.clock() - LastPlayedd) >= (Sword_Spped - 0.8) or Sword_CP) then return end
+    LastPlayedd = os.clock()
+    Sword_CP = false
+    local char = LocalPlayer.Character
+    if not char then return end
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if not humanoid then return end
+    local currentSword
+    if getgenv().skinChanger then
+        currentSword = (getgenv().swordAnimations ~= "" and getgenv().swordAnimations)
+                    or (getgenv().swordModel ~= "" and getgenv().swordModel)
+                    or char:GetAttribute("CurrentlyEquippedSword")
+    else
+        currentSword = char:GetAttribute("CurrentlyEquippedSword")
+    end
+    local animation = c3(currentSword)
+    if not animation then return end
+    for _, track in pairs(humanoid.Animator:GetPlayingAnimationTracks()) do
+        if track.Name == "GrabParry" or track.Name == "Grab" then
+            track.TimePosition = 0
+            q3(track)
+        elseif track.Name == "SuccessParry" or track.Name == "Success" then
+            q3(track)
+        end
+    end
+    Grab_Parry = humanoid.Animator:LoadAnimation(animation)
+    x3(Grab_Parry)
+end
+
+pcall(function()
+    ReplicatedStorage["Remotes"]["ParrySuccessAll"].OnClientEvent:Connect(function()
+        Sword_CP = true
+        local char = LocalPlayer.Character
+        if not char then return end
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if not humanoid then return end
+        for _, track in pairs(humanoid.Animator:GetPlayingAnimationTracks()) do
+            if track.Name == "GrabParry" or track.Name == "Grab" then
+                q3(track)
+            end
+        end
+    end)
+end)
+
+System.ball = {}
+function System.ball.get()
+    local balls=Workspace:FindFirstChild("Balls"); if not balls then return nil end
+    for _,ball in pairs(balls:GetChildren()) do
+        if ball:GetAttribute("realBall") then ball.CanCollide=false; return ball end
+    end; return nil
+end
+function System.ball.get_all()
+    local balls_table={}; local balls=Workspace:FindFirstChild("Balls")
+    if not balls then return balls_table end
+    for _,ball in pairs(balls:GetChildren()) do
+        if ball:GetAttribute("realBall") then ball.CanCollide=false; table.insert(balls_table,ball) end
+    end; return balls_table
+end
+
+System.player = {}
+local w3=nil; local z3=0
+function System.player.get_closest()
+    local now=tick()
+    if now-z3 < 0.1 then return w3 end
+    z3=now
+    local max_distance=math.huge; local closest_entity=nil
+    if not Alive then return nil end
+    for _,entity in pairs(Alive:GetChildren()) do
+        if entity ~= LocalPlayer.Character and entity.PrimaryPart then
+            local distance=LocalPlayer:DistanceFromCharacter(entity.PrimaryPart.Position)
+            if distance < max_distance then max_distance=distance; closest_entity=entity end
+        end
+    end
+    w3=closest_entity; return closest_entity
+end
+
+System.curve = {}
+function System.curve.get_cframe()
+    local Camera = Workspace.CurrentCamera
+    local root = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    local root_pos = root and root.Position or Camera.CFrame.Position
+
+    local targetPart
+    do
+        local bestDist = math.huge
+        local mouseLoc = not System.__properties.__is_mobile and UserInputService:GetMouseLocation() or nil
+        if Alive then
+            for _, v in pairs(Alive:GetChildren()) do
+                if v ~= LocalPlayer.Character and v.PrimaryPart then
+                    local screenPos, onScreen = Camera:WorldToScreenPoint(v.PrimaryPart.Position)
+                    if onScreen then
+                        local dist
+                        if mouseLoc then
+                            dist = (Vector2.new(screenPos.X, screenPos.Y) - mouseLoc).Magnitude
+                        else
+                            local center = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y / 2)
+                            dist = (Vector2.new(screenPos.X, screenPos.Y) - center).Magnitude
+                        end
+                        if dist < bestDist then bestDist = dist; targetPart = v.PrimaryPart end
+                    end
+                end
+            end
+        end
+    end
+    local target_pos = targetPart and targetPart.Position or (root_pos + Camera.CFrame.LookVector * 100)
+
+    local Parry_Type = z2
+    local cf
+
+    if Parry_Type == "Camera" then
+        cf = Camera.CFrame
+    elseif Parry_Type == "Random" then
+        local direction = (target_pos - root_pos).Unit
+        local random_offset
+        local attempts = 0
+        repeat
+            random_offset = Vector3.new(math.random(-4000,4000), math.random(-4000,4000), math.random(-4000,4000))
+            local curve_dir = (target_pos + random_offset - root_pos).Unit
+            local dot = direction:Dot(curve_dir)
+            attempts = attempts + 1
+        until dot < 0.95 or attempts > 10
+        cf = CFrame.new(root_pos, target_pos + random_offset)
+    elseif Parry_Type == "Accelerated" then
+        cf = CFrame.new(root_pos, target_pos + Vector3.new(0, 5, 0))
+    elseif Parry_Type == "Backwards" then
+        local direction = (root_pos - target_pos).Unit
+        local backwards_pos = root_pos + direction * 10000 + Vector3.new(0, 1000, 0)
+        cf = CFrame.new(Camera.CFrame.Position, backwards_pos)
+    elseif Parry_Type == "Slow" then
+        cf = CFrame.new(root_pos, target_pos + Vector3.new(0, -9e18, 0))
+    elseif Parry_Type == "High" then
+        cf = CFrame.new(root_pos, target_pos + Vector3.new(0, 9e18, 0))
+    elseif Parry_Type == "Normal" then
+        cf = CFrame.new(root_pos, root_pos + (root and root.CFrame.LookVector or Camera.CFrame.LookVector))
+    elseif Parry_Type == "Speed" then
+        cf = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + Camera.CFrame.UpVector * 5)
+    elseif Parry_Type == "Down" then
+        cf = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + Camera.CFrame.UpVector * -9e9)
+    elseif Parry_Type == "Left" then
+        cf = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position - Camera.CFrame.RightVector * 9e9)
+    elseif Parry_Type == "Right" then
+        cf = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + Camera.CFrame.RightVector * 9e9)
+    else
+        cf = Camera.CFrame
+    end
+
+    return cf
+end
+
+System.parry = {}
+function System.parry.execute()
+    if System.__properties.__parries > 10000 or not LocalPlayer.Character then return end
+    u3(System.curve.get_cframe())
+    if System.__properties.__parries > 10000 then return end
+    System.__properties.__parries=System.__properties.__parries+1
+    task.delay(0.5,function() if System.__properties.__parries > 0 then System.__properties.__parries=System.__properties.__parries-1 end end)
+end
+
+function System.parry.keypress()
+    if System.__properties.__parries > 10000 or not LocalPlayer.Character then return end
+    u3(System.curve.get_cframe())
+    if System.__properties.__parries > 10000 then return end
+    System.__properties.__parries=System.__properties.__parries+1
+    task.delay(0.5,function() if System.__properties.__parries > 0 then System.__properties.__parries=System.__properties.__parries-1 end end)
+end
+
+function System.parry.execute_action()
+    System.animation.play_grab_parry(); System.parry.execute()
+end
+
+local PF = function()
+    System.parry.keypress()
+    if getgenv().AutoSpamAnimationFix then
+        System.animation.play_grab_parry()
+    end
+end
+
+ReplicatedStorage["Remotes"]["DeathBall"].OnClientEvent:Connect(function(c,d)
+    System.__properties.__deathslash_active = d or false
+end)
+ReplicatedStorage["Remotes"]["InfinityBall"].OnClientEvent:Connect(function(a,b)
+    System.__properties.__infinity_active = b or false
+end)
+
+ReplicatedStorage["Packages"]["_Index"]["sleitnick_net@0.1.0"].net["RE/TimeHoleActivate"].OnClientEvent:Connect(function(...)
+    local args={...}; local player=args[1]
+    if player==LocalPlayer or player==LocalPlayer.Name or (player and player.Name==LocalPlayer.Name) then
+        System.__properties.__timehole_active=true
+    end
+end)
+ReplicatedStorage["Packages"]["_Index"]["sleitnick_net@0.1.0"].net["RE/TimeHoleDeactivate"].OnClientEvent:Connect(function()
+    System.__properties.__timehole_active=false
+end)
+
+local maxParryCount=36; local parryDelay=0.05
+
+ReplicatedStorage["Packages"]["_Index"]["sleitnick_net@0.1.0"].net["RE/SlashesOfFuryActivate"].OnClientEvent:Connect(function(...)
+    local args={...}; local player=args[1]
+    if player==LocalPlayer or player==LocalPlayer.Name or (player and player.Name==LocalPlayer.Name) then
+        System.__properties.__slashesoffury_active=true; System.__properties.__slashesoffury_count=0
+    end
+end)
+ReplicatedStorage["Packages"]["_Index"]["sleitnick_net@0.1.0"].net["RE/SlashesOfFuryEnd"].OnClientEvent:Connect(function()
+    System.__properties.__slashesoffury_active=false; System.__properties.__slashesoffury_count=0
+end)
+ReplicatedStorage["Packages"]["_Index"]["sleitnick_net@0.1.0"].net["RE/SlashesOfFuryParry"].OnClientEvent:Connect(function()
+    System.__properties.__slashesoffury_count=System.__properties.__slashesoffury_count+1
+end)
+ReplicatedStorage["Packages"]["_Index"]["sleitnick_net@0.1.0"].net["RE/SlashesOfFuryCatch"].OnClientEvent:Connect(function()
+    task.spawn(function()
+        while System.__properties.__slashesoffury_active and System.__properties.__slashesoffury_count < maxParryCount do
+            if System.__config.__detections.__slashesoffury then System.parry.execute(); task.wait(parryDelay)
+            else break end
+        end
+    end)
+end)
+
+System.pull = {}
+
+function System.pull.trigger()
+    local sys = System.__properties
+    local cfg = System.__config
+    if not cfg.__detections.__pull then return end
+    local now = tick()
+    if now - sys.__pull_last < 0.15 then return end
+    sys.__pull_last = now
+    sys.__pull_active = true
+    sys.__pull_flipped = false
+    sys.__pull_until = now + cfg.__pull_hold
+    sys.__pull_arm = now + math.min(0.25, cfg.__pull_hold)
+    local ball = System.ball.get()
+    if ball and ball:GetAttribute("target") ~= LocalPlayer.Name then sys.__pull_flipped = true end
+    if cfg.__pull_notify then
+        Fluent:Notify({Title="Pull Detection", Content="Enemy Pull detected - parry on hold", Duration=1.5})
+    end
+end
+
+function System.pull.blocked(ball)
+    local sys = System.__properties
+    if not sys.__pull_active then return false end
+    local now = tick()
+    if now >= sys.__pull_until then
+        sys.__pull_active = false
+        return false
+    end
+    ball = ball or System.ball.get()
+    if ball then
+        if ball:GetAttribute("target") ~= LocalPlayer.Name then
+            sys.__pull_flipped = true
+        elseif sys.__pull_flipped or now >= sys.__pull_arm then
+            sys.__pull_active = false
+            return false
+        end
+    end
+    return true
+end
+
+pcall(function()
+    ReplicatedStorage["Remotes"]["ActivateAbility"].OnClientEvent:Connect(function(character)
+        if typeof(character) ~= "Instance" or character == LocalPlayer.Character then return end
+        if character:GetAttribute("Ability") == "Pull" then System.pull.trigger() end
+    end)
+end)
+
+Runtime.ChildAdded:Connect(function(Object)
+    if Object.Name ~= "Pull" and Object.Name ~= "MaxPull" then return end
+    local char = LocalPlayer.Character
+    if char and char:GetAttribute("Ability") == "Pull" then return end
+    System.pull.trigger()
+end)
+
+Runtime.ChildAdded:Connect(function(Object)
+    if System.__config.__detections.__phantom then
+        if Object.Name=="maxTransmission" or Object.Name=="transmissionpart" then
+            local Weld=Object:FindFirstChildWhichIsA("WeldConstraint")
+            if Weld then
+                local Character=LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                if Character and Weld.Part1==Character.HumanoidRootPart then
+                    local CurrentBall=System.ball.get(); Weld:Destroy()
+                    if CurrentBall then
+                        local FocusConnection
+                        FocusConnection=RunService.RenderStepped:Connect(function()
+                            local Highlighted=CurrentBall:GetAttribute("highlighted")
+                            if Highlighted==true then
+                                ReplicatedStorage["Remotes"]["AbilityButtonPress"]:Fire()
+                                System.__properties.__parried=true
+                                task.delay(1,function() System.__properties.__parried=false end)
+                            elseif Highlighted==false then FocusConnection:Disconnect() end
+                        end)
+                        task.delay(3,function() if FocusConnection and FocusConnection.Connected then FocusConnection:Disconnect() end end)
+                    end
+                end
+            end
+        end
+    end
+end)
+
+ReplicatedStorage["Remotes"]["ParrySuccess"].OnClientEvent:Connect(function()
+    if not Alive or LocalPlayer.Character.Parent ~= Alive then return end
+    if System.__properties.__grab_animation then System.__properties.__grab_animation:Stop() end
+end)
+
+local ThunderDash = {}
+function ThunderDash:Enable()
+    if System.__properties.__thunder_dash_enabled then return end
+    System.__properties.__thunder_dash_enabled = true
+    local Abilities = ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Abilities")
+    local function removeCooldowns(ability)
+        local success, module = pcall(require, ability)
+        if success and module then
+            if module.cooldown ~= nil then module.cooldown = 0 end
+            if module.cooldownReductionPerUpgrade ~= nil then module.cooldownReductionPerUpgrade = 0 end
+        end
+    end
+    for _, ability in ipairs(Abilities:GetChildren()) do removeCooldowns(ability) end
+    Abilities.ChildAdded:Connect(removeCooldowns)
+end
+function ThunderDash:Disable()
+    System.__properties.__thunder_dash_enabled = false
+end
+
+System.triggerbot = {}
+local d3 = false
+
+function System.triggerbot.trigger(ball)
+    if d3 then return end
+    if System.__triggerbot.__is_parrying then return end
+    if System.__triggerbot.__parries > System.__triggerbot.__max_parries then return end
+    if LocalPlayer.Character and LocalPlayer.Character.PrimaryPart and
+       LocalPlayer.Character.PrimaryPart:FindFirstChild("SingularityCape") then return end
+
+    d3 = true
+    System.__triggerbot.__is_parrying=true
+    System.__triggerbot.__parries=System.__triggerbot.__parries+1
+
+    System.parry.execute()
+
+    if System.__properties.__play_animation then
+        System.animation.play_grab_parry()
+    end
+
+    task.delay(0.2,function()
+        d3 = false
+        if System.__triggerbot.__parries > 0 then
+            System.__triggerbot.__parries=System.__triggerbot.__parries-1
+        end
+    end)
+
+    task.spawn(function()
+        local start_time=tick()
+        repeat RunService.Heartbeat:Wait()
+        until (tick()-start_time >= 0.15 or not System.__triggerbot.__is_parrying)
+        System.__triggerbot.__is_parrying=false
+    end)
+end
+
+function System.triggerbot.loop()
+    if not System.__triggerbot.__enabled then return end
+    if LocalPlayer.Character and LocalPlayer.Character.PrimaryPart and
+       LocalPlayer.Character.PrimaryPart:FindFirstChild("SingularityCape") then return end
+    local balls=Workspace:FindFirstChild("Balls"); if not balls then return end
+    for _,ball in pairs(balls:GetChildren()) do
+        local held = System.__config.__detections.__pull and ball:GetAttribute("realBall") and System.pull.blocked(ball)
+        if not held and ball:IsA("BasePart") and ball:GetAttribute("target")==LocalPlayer.Name then
+            System.triggerbot.trigger(ball)
+            break
+        end
+    end
+end
+
+function System.triggerbot.enable(enabled)
+    System.__triggerbot.__enabled=enabled
+    if enabled then
+        if not System.__properties.__connections.__triggerbot then
+            System.__properties.__connections.__triggerbot=RunService.Heartbeat:Connect(System.triggerbot.loop)
+        end
+    else
+        if System.__properties.__connections.__triggerbot then
+            System.__properties.__connections.__triggerbot:Disconnect()
+            System.__properties.__connections.__triggerbot=nil
+        end
+        System.__triggerbot.__is_parrying=false
+        System.__triggerbot.__parries=0
+        d3 = false
+    end
+end
+
+System.manual_spam = {}
+local m3=nil
+local n3=false
+local v4=0; local r4=0; local k4=0; local u4=true
+
+function System.manual_spam.start()
+    System.manual_spam.stop()
+    System.__properties.__manual_spam_enabled=true; n3=true
+    local parry_keypress=System.parry.keypress; local parry_execute=System.parry.execute
+    local play_animation=System.animation.play_grab_parry; local threshold=0.015
+    m3=coroutine.create(function()
+        local last_spam=0
+        while System.__properties.__manual_spam_enabled do
+            local now=os.clock()
+            if now-last_spam >= threshold then
+                last_spam=now
+                if getgenv().ManualSpamMode=="Keypress" then parry_keypress()
+                else parry_execute(); if getgenv().ManualSpamAnimationFix then play_animation() end end
+            end
+            coroutine.yield()
+        end
+    end)
+    task.spawn(function()
+        while System.__properties.__manual_spam_enabled and m3
+              and coroutine.status(m3) ~= "dead" do
+            coroutine.resume(m3); task.wait()
+        end
+    end)
+end
+
+function System.manual_spam.stop()
+    System.__properties.__manual_spam_enabled=false; n3=false; m3=nil
+end
+
+RunService.Heartbeat:Connect(function(dt)
+    r4=r4+dt
+    if r4 >= 0.1 then
+        if n3 then k4=math.floor(v4/r4) end
+        v4=0; r4=0
+    end
+    if n3 and n2 then
+        pcall(function() u3(System.curve.get_cframe()); v4=v4+1 end)
+        if u4 then System.animation.play_grab_parry() end
+    end
+end)
+
+System.auto_spam = {}
+
+function System.auto_spam:get_entity_properties()
+    System.player.get_closest()
+    if not w3 or not LocalPlayer.Character or not LocalPlayer.Character.PrimaryPart or not w3.PrimaryPart then return false end
+    local entity_velocity = w3.PrimaryPart.AssemblyLinearVelocity
+    local entity_direction = (LocalPlayer.Character.PrimaryPart.Position - w3.PrimaryPart.Position).Unit
+    local entity_distance = (LocalPlayer.Character.PrimaryPart.Position - w3.PrimaryPart.Position).Magnitude
+    return {Velocity = entity_velocity, Direction = entity_direction, Distance = entity_distance}
+end
+
+function System.auto_spam:get_ball_properties()
+    local ball = System.ball.get()
+    if not ball or not LocalPlayer.Character or not LocalPlayer.Character.PrimaryPart then return false end
+    local ball_velocity = ball.AssemblyLinearVelocity
+    local ball_direction = (LocalPlayer.Character.PrimaryPart.Position - ball.Position).Unit
+    local ball_distance = (LocalPlayer.Character.PrimaryPart.Position - ball.Position).Magnitude
+    local ball_dot = ball_velocity.Magnitude > 0 and ball_direction:Dot(ball_velocity.Unit) or 0
+    return {Velocity = ball_velocity, Direction = ball_direction, Distance = ball_distance, Dot = ball_dot}
+end
+
+function System.auto_spam.spam_service(self)
+    local ball = System.ball.get()
+    local entity = System.player.get_closest()
+    if not ball or not entity or not entity.PrimaryPart or not LocalPlayer.Character or not LocalPlayer.Character.PrimaryPart then return 0 end
+    local velocity = ball.AssemblyLinearVelocity
+    local speed = velocity.Magnitude
+    local direction = (LocalPlayer.Character.PrimaryPart.Position - ball.Position).Unit
+    local dot = speed > 0 and direction:Dot(velocity.Unit) or 0
+    local target_distance = LocalPlayer:DistanceFromCharacter(entity.PrimaryPart.Position)
+    local maximum_spam_distance = self.Ping + math.min(speed / 6, 255)
+    if self.Entity_Properties.Distance > maximum_spam_distance or self.Ball_Properties.Distance > maximum_spam_distance or target_distance > maximum_spam_distance then return 0 end
+    local maximum_speed = 5 - math.min(speed / 5, 5)
+    local maximum_dot = math.clamp(dot, -1, 0) * maximum_speed
+    return maximum_spam_distance - maximum_dot
+end
+
+function System.auto_spam.start()
+    if System.__properties.__connections.__auto_spam then
+        System.__properties.__connections.__auto_spam:Disconnect()
+    end
+    System.__properties.__auto_spam_enabled = true
+    System.__properties.__connections.__auto_spam = RunService.PreSimulation:Connect(function()
+        if not System.__properties.__auto_spam_enabled then return end
+        local ball = System.ball.get()
+        if not ball or System.__properties.__slashesoffury_active then return end
+        if System.__config.__detections.__pull and System.pull.blocked(ball) then return end
+        local zoomies = ball:FindFirstChild("zoomies")
+        if not zoomies then return end
+        System.player.get_closest()
+        local ball_properties = System.auto_spam:get_ball_properties()
+        local entity_properties = System.auto_spam:get_entity_properties()
+        if not ball_properties or not entity_properties or not w3 or not w3.PrimaryPart then return end
+        local ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+        local ping_threshold = math.clamp(ping / 10, 1, 16)
+        local spam_accuracy = System.auto_spam.spam_service({
+            Ball_Properties = ball_properties,
+            Entity_Properties = entity_properties,
+            Ping = ping_threshold
+        })
+        local target_distance = LocalPlayer:DistanceFromCharacter(w3.PrimaryPart.Position)
+        local distance = LocalPlayer:DistanceFromCharacter(ball.Position)
+        local ball_target = ball:GetAttribute("target")
+        if not ball_target or target_distance > spam_accuracy or distance > spam_accuracy then return end
+        if LocalPlayer.Character:GetAttribute("Pulsed") then return end
+        if ball_target == LocalPlayer.Name and target_distance > 30 and distance > 30 then return end
+        if distance <= spam_accuracy and System.__properties.__parries > System.__properties.__spam_threshold then
+            if getgenv().AutoSpamMode == "Keypress" then
+                if PF then PF() end
+            else
+                System.parry.execute()
+                if getgenv().AutoSpamAnimationFix and PF then PF() end
+            end
+        end
+    end)
+end
+
+function System.auto_spam.stop()
+    System.__properties.__auto_spam_enabled = false
+    if System.__properties.__connections.__auto_spam then
+        System.__properties.__connections.__auto_spam:Disconnect()
+        System.__properties.__connections.__auto_spam = nil
+    end
+end
+
+System.autoparry = {
+    config = {ping_comp = 1, extra_lead = 0, floor = 0.5},
+    states = {},
+    list = {},
+    ping = 0.05,
+    jitter = 0.004,
+    frame = 1 / 60,
+    last_step = os.clock(),
+    ping_ready = false
+}
+
+function System.autoparry.update_ping()
+    local ap = System.autoparry
+    if not ap.ping_item then
+        local ok, item = pcall(function() return Stats.Network.ServerStatsItem["Data Ping"] end)
+        if not ok or not item then return end
+        ap.ping_item = item
+    end
+    local raw = ap.ping_item:GetValue() / 1000
+    if raw ~= raw or raw < 0 or raw > 5 then return end
+    if not ap.ping_ready then
+        ap.ping = raw
+        ap.ping_ready = true
+        return
+    end
+    local diff = math.abs(raw - ap.ping)
+    ap.ping = ap.ping + (raw - ap.ping) * 0.2
+    ap.jitter = ap.jitter + (diff - ap.jitter) * 0.2
+end
+
+function System.autoparry.get_lead()
+    local ap = System.autoparry
+    local cfg = ap.config
+    local base = math.clamp(0.27 / System.__properties.__divisor_multiplier, 0.12, 0.45)
+    local net = (ap.ping + ap.jitter) * cfg.ping_comp
+    return math.clamp(base + net + ap.frame + 0.015 + cfg.extra_lead / 1000, 0.05, 0.9)
+end
+
+function System.autoparry.track(ball, zoomies, now)
+    local ap = System.autoparry
+    local vel = zoomies.VectorVelocity
+    if vel.Magnitude < 0.01 then vel = ball.AssemblyLinearVelocity end
+    local speed = vel.Magnitude
+    local st = ap.states[ball]
+    if not st then
+        st = {
+            t0 = now,
+            s0 = speed,
+            u0 = speed > 1 and vel / speed or Vector3.new(0, 0, 1),
+            omega = 0,
+            accel = 0,
+            settle = 0,
+            fired = false,
+            fired_at = 0
+        }
+        st.conn = ball:GetAttributeChangedSignal("target"):Connect(function()
+            System.autoparry.on_target(ball, st)
+        end)
+        ap.states[ball] = st
+        return st, vel, speed
+    end
+    local elapsed = now - st.t0
+    if elapsed >= 0.08 then
+        if st.settle > 0 then
+            st.settle = st.settle - 1
+        elseif speed > 1 and st.s0 > 1 then
+            local d = math.clamp(st.u0:Dot(vel / speed), -1, 1)
+            st.omega = st.omega * 0.5 + math.min(math.acos(d) / elapsed, 30) * 0.5
+            st.accel = st.accel * 0.5 + math.clamp((speed - st.s0) / elapsed, 0, 2500) * 0.5
+        end
+        st.t0 = now
+        st.s0 = speed
+        if speed > 1 then st.u0 = vel / speed end
+    end
+    return st, vel, speed
+end
+
+function System.autoparry.simulate(ball_pos, dir, speed, accel, my_pos, my_vel, omega, horizon, radius)
+    local h = 1 / 60
+    local steps = math.min(math.ceil(horizon / h), 54)
+    local pos, me, d, s, t = ball_pos, my_pos, dir, speed, 0
+    for _ = 1, steps do
+        local to = me - pos
+        local dm = to.Magnitude
+        if dm <= radius + s * h * 0.5 then return t end
+        local want = to / dm
+        local ang = math.acos(math.clamp(d:Dot(want), -1, 1))
+        local turn = omega * h
+        if ang <= turn then
+            d = want
+        else
+            local nd = d + (want - d) * (turn / ang)
+            if nd.Magnitude > 1e-4 then d = nd.Unit end
+        end
+        s = s + accel * h
+        pos = pos + d * (s * h)
+        me = me + my_vel * h
+        t = t + h
+    end
+    return math.huge
+end
+
+function System.autoparry.should_fire(ball, st, vel, speed, root)
+    local ap = System.autoparry
+    local cfg = ap.config
+    local my_pos = root.Position
+    local my_vel = root.AssemblyLinearVelocity
+    local my_speed = my_vel.Magnitude
+    if my_speed > 120 then
+        my_vel = my_vel * (120 / my_speed)
+        my_speed = 120
+    end
+    local rel = ball.Position - my_pos
+    local dist = rel.Magnitude
+    if dist <= 14.5 then return true end
+    local lead = ap.get_lead()
+    local radius = 3.5
+    local dir = speed > 1 and vel / speed or -rel / dist
+    local eff_speed = speed + st.accel * 0.5 * lead
+    local t_bound = (dist - radius) / math.max(eff_speed + my_speed, 1)
+    if t_bound > lead then return false end
+    local rel_v = dir * eff_speed - my_vel
+    local a = rel_v:Dot(rel_v)
+    local b = 2 * rel:Dot(rel_v)
+    local c = dist * dist - radius * radius
+    if a > 1e-6 and b < 0 then
+        local disc = b * b - 4 * a * c
+        if disc >= 0 and (-b - math.sqrt(disc)) / (2 * a) <= lead then return true end
+    end
+    local omega = math.clamp(st.omega * 1.2, 2.5, 16)
+    if ap.simulate(ball.Position, dir, speed, st.accel, my_pos, my_vel, omega, lead, radius) <= lead then return true end
+    local ratio = cfg.floor
+    if dir:Dot(-rel / dist) < 0.34 then ratio = ratio * 0.45 end
+    return t_bound <= lead * ratio
+end
+
+function System.autoparry.try_ability()
+    local ok, used = pcall(function()
+        local gradient = LocalPlayer.PlayerGui["Hotbar"].Ability.UIGradient
+        if not gradient or gradient.Offset.Y ~= 0.5 then return false end
+        local char = LocalPlayer.Character
+        local abilities = char and char:FindFirstChild("Abilities")
+        if not abilities then return false end
+        for _, name in ipairs({"Raging Deflection", "Rapture", "Calming Deflection", "Aerodynamic Slash", "Fracture", "Death Slash"}) do
+            local ability = abilities:FindFirstChild(name)
+            if ability and ability.Enabled then
+                System.__properties.__parried = true
+                ReplicatedStorage["Remotes"]["AbilityButtonPress"]:Fire()
+                task.delay(2.432, function()
+                    ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("DeathSlashShootActivation"):FireServer(true)
+                end)
+                return true
+            end
+        end
+        return false
+    end)
+    return ok and used == true
+end
+
+function System.autoparry.fire()
+    if not n2 or not v3 then return false end
+    if getgenv().AutoParryMode == "Keypress" then
+        System.parry.keypress()
+    else
+        System.parry.execute()
+        task.defer(System.animation.play_grab_parry)
+    end
+    return true
+end
+
+function System.autoparry.process(ball, now)
+    local ap = System.autoparry
+    local sys = System.__properties
+    local char = LocalPlayer.Character
+    local root = char and char.PrimaryPart
+    if not root or not ball.Parent then return end
+    local zoomies = ball:FindFirstChild("zoomies")
+    if not zoomies then return end
+    local st, vel, speed = ap.track(ball, zoomies, now)
+    local vfx = ball:FindFirstChild("AeroDynamicSlashVFX")
+    if vfx then
+        vfx:Destroy()
+        sys.__tornado_time = tick()
+    end
+    if sys.__parried then return end
+    if System.__config.__detections.__pull and System.pull.blocked(ball) then return end
+    if ball:GetAttribute("target") ~= LocalPlayer.Name then
+        st.fired = false
+        return
+    end
+    if st.fired then
+        if now - st.fired_at < 1 then return end
+        st.fired = false
+    end
+    local tornado = Runtime:FindFirstChild("Tornado")
+    if tornado and (tick() - sys.__tornado_time) < ((tornado:GetAttribute("TornadoTime") or 1) + 0.314159) then return end
+    if ball:FindFirstChild("ComboCounter") then return end
+    if root:FindFirstChild("SingularityCape") then return end
+    local det = System.__config.__detections
+    if det.__infinity and sys.__infinity_active then return end
+    if det.__deathslash and sys.__deathslash_active then return end
+    if det.__timehole and sys.__timehole_active then return end
+    if det.__slashesoffury and sys.__slashesoffury_active then return end
+    if not ap.should_fire(ball, st, vel, speed, root) then return end
+    if getgenv().AutoAbility and ap.try_ability() then return end
+    if ap.fire() then
+        st.fired = true
+        st.fired_at = now
+    end
+end
+
+function System.autoparry.on_target(ball, st)
+    if System.__properties.__pull_active and ball:GetAttribute("target") ~= LocalPlayer.Name then
+        System.__properties.__pull_flipped = true
+    end
+    st.fired = false
+    st.fired_at = 0
+    st.omega = 0
+    st.accel = 0
+    st.settle = 1
+    st.t0 = os.clock()
+    local z = ball:FindFirstChild("zoomies")
+    local v = z and z.VectorVelocity or Vector3.zero
+    st.s0 = v.Magnitude
+    if st.s0 > 1 then st.u0 = v / st.s0 end
+    System.__properties.__parried = false
+    if System.__properties.__autoparry_enabled and not System.__triggerbot.__enabled
+        and ball:GetAttribute("target") == LocalPlayer.Name then
+        System.autoparry.process(ball, st.t0)
+    end
+end
+
+function System.autoparry.step()
+    local ap = System.autoparry
+    local sys = System.__properties
+    if not sys.__autoparry_enabled then return end
+    local char = LocalPlayer.Character
+    if not char or not char.PrimaryPart then return end
+    local now = os.clock()
+    ap.frame = ap.frame + (math.clamp(now - ap.last_step, 0.004, 0.1) - ap.frame) * 0.2
+    ap.last_step = now
+    ap.update_ping()
+    if System.__triggerbot.__enabled or getgenv().BallVelocityAbove800 then return end
+    local list = ap.list
+    table.clear(list)
+    local balls = Workspace:FindFirstChild("Balls")
+    if balls then
+        for _, b in ipairs(balls:GetChildren()) do
+            if b:GetAttribute("realBall") then
+                if b.CanCollide then b.CanCollide = false end
+                list[#list + 1] = b
+            end
+        end
+    end
+    local training = Workspace:FindFirstChild("TrainingBalls")
+    if training then
+        for _, b in ipairs(training:GetChildren()) do
+            if b:GetAttribute("realBall") then
+                list[#list + 1] = b
+                break
+            end
+        end
+    end
+    for i = 1, #list do
+        ap.process(list[i], now)
+    end
+    for ball, st in pairs(ap.states) do
+        if not ball.Parent then
+            if st.conn then st.conn:Disconnect() end
+            ap.states[ball] = nil
+        end
+    end
+end
+
+function System.autoparry.start()
+    local conns = System.__properties.__connections
+    if conns.__autoparry then conns.__autoparry:Disconnect() end
+    System.autoparry.last_step = os.clock()
+    conns.__autoparry = RunService.PreSimulation:Connect(System.autoparry.step)
+end
+
+function System.autoparry.stop()
+    local conns = System.__properties.__connections
+    if conns.__autoparry then
+        conns.__autoparry:Disconnect()
+        conns.__autoparry = nil
+    end
+    for ball, st in pairs(System.autoparry.states) do
+        if st.conn then st.conn:Disconnect() end
+        System.autoparry.states[ball] = nil
+    end
+end
+
+getgenv().AutoParryMode = getgenv().AutoParryMode or "Remote"
+getgenv().ManualSpamMode = getgenv().ManualSpamMode or "Remote"
+getgenv().AutoSpamMode = getgenv().AutoSpamMode or "Remote"
+getgenv().AutoSpamAnimationFix = getgenv().AutoSpamAnimationFix ~= false
+getgenv().AutoSpamNotify = true
+getgenv().AutoParryNotify = true
+getgenv().ManualSpamNotify = true
+getgenv().TriggerbotNotify = true
+getgenv().ManualSpamAnimationFix = true
+u4 = true
+
+local function p4()
+    if not getgenv().CharacterModifierEnabled then return end
+    local char = LocalPlayer.Character
+    if not char then return end
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart")
+
+    if humanoid then
+        if not getgenv().OriginalValues or getgenv().OriginalValues.Character ~= char then
+            getgenv().OriginalValues = {
+                Character = char,
+                WalkSpeed = humanoid.WalkSpeed,
+                JumpPower = humanoid.JumpPower,
+                JumpHeight = humanoid.JumpHeight,
+                HipHeight = humanoid.HipHeight,
+                AutoRotate = humanoid.AutoRotate
+            }
+        end
+        if getgenv().WalkspeedCheckboxEnabled then
+            humanoid.WalkSpeed = tonumber(getgenv().CustomWalkSpeed) or 36
+        end
+        if getgenv().JumpPowerCheckboxEnabled then
+            if humanoid.UseJumpPower then
+                humanoid.JumpPower = tonumber(getgenv().CustomJumpPower) or 50
+            else
+                humanoid.JumpHeight = tonumber(getgenv().CustomJumpHeight) or 7.2
+            end
+        end
+        if getgenv().HipHeightCheckboxEnabled then
+            humanoid.HipHeight = tonumber(getgenv().CustomHipHeight) or 0
+        end
+        if getgenv().SpinbotCheckboxEnabled and root then
+            humanoid.AutoRotate = false
+            getgenv().spinAngle = ((getgenv().spinAngle or 0) + (tonumber(getgenv().CustomSpinSpeed) or 5)) % 360
+            root.CFrame = CFrame.new(root.Position) * CFrame.Angles(0, math.rad(getgenv().spinAngle), 0)
+        elseif getgenv().OriginalValues.AutoRotate ~= nil then
+            humanoid.AutoRotate = getgenv().OriginalValues.AutoRotate
+        end
+    end
+
+    if getgenv().GravityCheckboxEnabled then
+        workspace.Gravity = tonumber(getgenv().CustomGravity) or 196.2
+    end
+end
+
+local function c4()
+    local char = LocalPlayer.Character
+    local original = getgenv().OriginalValues
+    if char and original and original.Character == char then
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            if original.WalkSpeed ~= nil then humanoid.WalkSpeed = original.WalkSpeed end
+            if humanoid.UseJumpPower then
+                if original.JumpPower ~= nil then humanoid.JumpPower = original.JumpPower end
+            elseif original.JumpHeight ~= nil then
+                humanoid.JumpHeight = original.JumpHeight
+            end
+            if original.HipHeight ~= nil then humanoid.HipHeight = original.HipHeight end
+            if original.AutoRotate ~= nil then humanoid.AutoRotate = original.AutoRotate end
+        end
+    end
+    workspace.Gravity = 196.2
+end
+
+local function x4(enabled)
+    getgenv().InfiniteJumpCheckboxEnabled = enabled
+    if enabled and getgenv().CharacterModifierEnabled then
+        if not getgenv().InfiniteJumpConnection then
+            getgenv().InfiniteJumpConnection = UserInputService.JumpRequest:Connect(function()
+                if not getgenv().CharacterModifierEnabled or not getgenv().InfiniteJumpCheckboxEnabled then return end
+                local char = LocalPlayer.Character
+                local humanoid = char and char:FindFirstChildOfClass("Humanoid")
+                if humanoid then
+                    humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+                end
+            end)
+        end
+    elseif getgenv().InfiniteJumpConnection then
+        getgenv().InfiniteJumpConnection:Disconnect()
+        getgenv().InfiniteJumpConnection = nil
+    end
+end
+
+local function q4(value)
+    getgenv().CharacterModifierEnabled = value
+    if value then
+        getgenv().spinAngle = getgenv().spinAngle or 0
+        if not getgenv().CharacterConnection then
+            getgenv().CharacterConnection = RunService.Heartbeat:Connect(function()
+                pcall(p4)
+            end)
+        end
+        if not getgenv().CharacterAddedConnection then
+            getgenv().CharacterAddedConnection = LocalPlayer.CharacterAdded:Connect(function(character)
+                task.spawn(function()
+                    character:WaitForChild("Humanoid", 5)
+                    character:WaitForChild("HumanoidRootPart", 5)
+                    task.wait(0.1)
+                    if getgenv().CharacterModifierEnabled then
+                        getgenv().OriginalValues = nil
+                        p4()
+                        x4(getgenv().InfiniteJumpCheckboxEnabled == true)
+                    end
+                end)
+            end)
+        end
+        p4()
+        x4(getgenv().InfiniteJumpCheckboxEnabled == true)
+    else
+        if getgenv().CharacterConnection then
+            getgenv().CharacterConnection:Disconnect()
+            getgenv().CharacterConnection = nil
+        end
+        if getgenv().CharacterAddedConnection then
+            getgenv().CharacterAddedConnection:Disconnect()
+            getgenv().CharacterAddedConnection = nil
+        end
+        if getgenv().InfiniteJumpConnection then
+            getgenv().InfiniteJumpConnection:Disconnect()
+            getgenv().InfiniteJumpConnection = nil
+        end
+        c4()
+        getgenv().OriginalValues = nil
+        getgenv().spinAngle = nil
+    end
+end
+
+local w4 = {
+    storage = {},
+    current = nil,
+    track = nil
+}
+
+function w4.load_animations()
+    pcall(function()
+        local emotes_folder = ReplicatedStorage:FindFirstChild("Misc") and ReplicatedStorage.Misc:FindFirstChild("Emotes")
+        if not emotes_folder then return end
+        for _, animation in pairs(emotes_folder:GetChildren()) do
+            if animation:IsA("Animation") and animation:GetAttribute("EmoteName") then
+                local emote_name = animation:GetAttribute("EmoteName")
+                w4.storage[emote_name] = animation
+            end
+        end
+    end)
+end
+
+function w4.get_emotes_list()
+    local emotes_list = {}
+    for emote_name in pairs(w4.storage) do
+        table.insert(emotes_list, emote_name)
+    end
+    table.sort(emotes_list)
+    if #emotes_list == 0 then table.insert(emotes_list, "None") end
+    return emotes_list
+end
+
+function w4.play(emote_name)
+    local animation_data = w4.storage[emote_name]
+    if not animation_data or not LocalPlayer.Character then return false end
+    local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+    if not humanoid then return false end
+    local animator = humanoid:FindFirstChild("Animator")
+    if not animator then return false end
+    if w4.track then
+        w4.track:Stop()
+        w4.track:Destroy()
+    end
+    w4.track = animator:LoadAnimation(animation_data)
+    w4.track:Play()
+    w4.current = emote_name
+    return true
+end
+
+function w4.stop()
+    if w4.track then
+        w4.track:Stop()
+        w4.track:Destroy()
+        w4.track = nil
+    end
+    w4.current = nil
+end
+
+function w4.start()
+    if not System.__properties.__connections.animations then
+        System.__properties.__connections.animations = RunService.Heartbeat:Connect(function()
+            if not LocalPlayer.Character or not LocalPlayer.Character.PrimaryPart then return end
+            local speed = LocalPlayer.Character.PrimaryPart.AssemblyLinearVelocity.Magnitude
+            if speed > 30 and getgenv().AutoStop then
+                if w4.track and w4.track.IsPlaying then
+                    w4.track:Stop()
+                end
+            else
+                if w4.current and (not w4.track or not w4.track.IsPlaying) then
+                    w4.play(w4.current)
+                end
+            end
+        end)
+    end
+end
+
+function w4.cleanup()
+    w4.stop()
+    if System.__properties.__connections.animations then
+        System.__properties.__connections.animations:Disconnect()
+        System.__properties.__connections.animations = nil
+    end
+end
+
+w4.load_animations()
+local emotes_data = w4.get_emotes_list()
+local selected_animation = emotes_data[1]
+
+local function uiBg()
+    local best, bestArea = nil, 0
+    local roots = {CoreGui}
+    pcall(function()
+        if gethui then roots[#roots + 1] = gethui() end
+    end)
+    for _, root in ipairs(roots) do
+        for _, gui in ipairs(root:GetChildren()) do
+            if gui:IsA("ScreenGui")
+                and not string.find(gui.Name, "_Mobile$")
+                and gui.Name ~= "MitHubBallVelocityGUI"
+                and gui.Name ~= "MitHubRealPing" then
+                for _, d in ipairs(gui:GetDescendants()) do
+                    if (d:IsA("ImageLabel") or d:IsA("ImageButton")) and d.Image ~= "" then
+                        local area = d.AbsoluteSize.X * d.AbsoluteSize.Y
+                        if area > bestArea then
+                            best = d
+                            bestArea = area
+                        end
+                    end
+                end
+            end
+        end
+    end
+    return best
+end
+
+local function d4(name, position_y)
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "MitHub_" .. name .. "_Mobile"
+    gui.ResetOnSpawn = false
+    gui.IgnoreGuiInset = true
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    local button = Instance.new("TextButton")
+    button.Size = UDim2.new(0, 140, 0, 50)
+    button.Position = UDim2.new(0.5, -70, position_y, 0)
+    button.BackgroundTransparency = 1
+    button.AnchorPoint = Vector2.new(0.5, 0)
+    button.Draggable = true
+    button.AutoButtonColor = false
+    button.ZIndex = 2
+    local bg = Instance.new("ImageLabel")
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    bg.BackgroundTransparency = 0
+    bg.BorderSizePixel = 0
+    bg.Image = ""
+    local source = uiBg()
+    if source then
+        bg.Image = source.Image
+        bg.ImageColor3 = source.ImageColor3
+        bg.ImageTransparency = source.ImageTransparency
+        bg.ScaleType = source.ScaleType
+        bg.SliceCenter = source.SliceCenter
+        bg.TileSize = source.TileSize
+        bg.ImageRectOffset = source.ImageRectOffset
+        bg.ImageRectSize = source.ImageRectSize
+        bg.ResampleMode = source.ResampleMode
+    end
+    bg.Parent = button
+    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 10)
+    f1(bg, 1.5, Color3.fromRGB(0, 0, 0))
+    local text = Instance.new("TextLabel")
+    text.Size = UDim2.new(1, 0, 1, 0)
+    text.BackgroundTransparency = 1
+    text.Text = name
+    text.Font = Enum.Font.GothamBold
+    text.TextSize = 16
+    text.TextColor3 = Color3.fromRGB(255, 255, 255)
+    text.ZIndex = 3
+    text.Parent = button
+    button.Parent = gui
+    gui.Parent = CoreGui
+    return {gui = gui, button = button, text = text, bg = bg}
+end
+
+local function m4(gui_data)
+    if gui_data and gui_data.gui then gui_data.gui:Destroy() end
+end
+
+local n4 = "Skin.LastEquippedSword"
+local v5 = "MitHub/bladeball_auto_config.json"
+
+local function r5()
+    local data = {}
+    pcall(function()
+        if isfile and isfile(v5) then
+            local decoded = HttpService:JSONDecode(readfile(v5))
+            if type(decoded) == "table" then data = decoded end
+        end
+    end)
+    return data
+end
+
+local function k5(data)
+    pcall(function()
+        if isfolder and makefolder and not isfolder("MitHub") then makefolder("MitHub") end
+        if writefile then writefile(v5, HttpService:JSONEncode(data or {})) end
+    end)
+end
+
+local function u5()
+    local data = r5()
+    local saved = data[n4]
+    return type(saved) == "string" and saved or ""
+end
+
+getgenv().saveLastEquippedSword = function(swordName)
+    if type(swordName) ~= "string" or swordName == "" then return end
+    local data = r5()
+    data[n4] = swordName
+    k5(data)
+end
+
+do
+    local savedLastSword = u5()
+    getgenv().skinChanger = getgenv().skinChanger or savedLastSword ~= ""
+    getgenv().swordModel = type(getgenv().swordModel) == "string" and getgenv().swordModel ~= "" and getgenv().swordModel or savedLastSword
+    getgenv().swordAnimations = type(getgenv().swordAnimations) == "string" and getgenv().swordAnimations ~= "" and getgenv().swordAnimations or savedLastSword
+    getgenv().swordFX = type(getgenv().swordFX) == "string" and getgenv().swordFX ~= "" and getgenv().swordFX or savedLastSword
+end
+
+task.spawn(function()
+    local rs = game:GetService("ReplicatedStorage")
+    local swordInstancesInstance = rs:WaitForChild("Shared", 9e9):WaitForChild("ReplicatedInstances", 9e9):WaitForChild("Swords", 9e9)
+    local swordInstances = require(swordInstancesInstance)
+    local swordsController
+    task.spawn(function()
+        while task.wait(0.25) and not swordsController do
+            local ok, conns = pcall(getconnections, rs["Remotes"]["FireSwordInfo"].OnClientEvent)
+            if ok and conns then
+                for _, v in ipairs(conns) do
+                    if v.Function and islclosure and islclosure(v.Function) then
+                        local ok2, up = pcall(getupvalues, v.Function)
+                        if ok2 and #up == 1 and type(up[1]) == "table" then
+                            swordsController = up[1]
+                            break
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    local function getSlashName(swordName)
+        local ok, sln = pcall(function() return swordInstances:GetSword(swordName) end)
+        return (ok and sln and sln.SlashName) or "SlashEffect"
+    end
+    local function refreshSlashName()
+        local fxName = getgenv().swordFX ~= "" and getgenv().swordFX or getgenv().swordModel
+        if fxName ~= "" then getgenv().slashName = getSlashName(fxName)
+        else getgenv().slashName = "SlashEffect" end
+    end
+    refreshSlashName()
+    local function setSword()
+        if not getgenv().skinChanger or not LocalPlayer.Character then return end
+        pcall(function()
+            local f = rawget(swordInstances, "EquipSwordTo")
+            if type(f) == "function" then
+                local ups = getupvalues(f)
+                for i = 1, #ups do
+                    if type(ups[i]) == "boolean" then setupvalue(f, i, false); break end
+                end
+            end
+        end)
+        pcall(function() swordInstances:EquipSwordTo(LocalPlayer.Character, getgenv().swordModel) end)
+        task.spawn(function()
+            local attempts = 0
+            while not swordsController and attempts < 20 do task.wait(0.5); attempts = attempts + 1 end
+            if not swordsController then return end
+            pcall(function()
+                if swordsController.SetSword then
+                    swordsController:SetSword(getgenv().swordAnimations ~= "" and getgenv().swordAnimations or getgenv().swordModel)
+                end
+            end)
+            pcall(function()
+                local targetSword = getgenv().swordFX ~= "" and getgenv().swordFX or getgenv().swordModel
+                if rs["Remotes"]:FindFirstChild("FireSwordInfo") then rs["Remotes"]["FireSwordInfo"]:FireServer(targetSword) end
+                if swordsController.currentSword ~= nil then pcall(function() swordsController.currentSword = targetSword end) end
+                if swordsController.SwordFX ~= nil then pcall(function() swordsController.SwordFX = targetSword end) end
+            end)
+        end)
+    end
+    local hookedFuncs = {}
+    task.spawn(function()
+        local remotesToHook = {"ParrySuccessAll", "ParryAttempt", "ParrySuccess", "PlaySound", "PlayVisuals"}
+        while task.wait(1) do
+            for _, remoteName in ipairs(remotesToHook) do
+                local remote = rs["Remotes"]:FindFirstChild(remoteName)
+                if remote and remote:IsA("RemoteEvent") then
+                    local ok, conns = pcall(getconnections, remote.OnClientEvent)
+                    if ok and type(conns) == "table" then
+                        for _, v in ipairs(conns) do
+                            local func = v.Function
+                            if func and not hookedFuncs[func] then
+                                hookedFuncs[func] = true
+                                v:Disable()
+                                local targetFunc = func
+                                local ourFunc = function(...)
+                                    local args = { ... }
+                                    local isLocal = false
+                                    for _, arg in ipairs(args) do
+                                        if tostring(arg) == LocalPlayer.Name or (typeof(arg) == "Instance" and (arg == LocalPlayer.Character or arg == LocalPlayer)) then
+                                            isLocal = true; break
+                                        end
+                                    end
+                                    if isLocal and getgenv().skinChanger then
+                                        local fxSword = getgenv().swordFX ~= "" and getgenv().swordFX or getgenv().swordModel
+                                        refreshSlashName()
+                                        local swordFound = false; local slashFound = false
+                                        for i, arg in ipairs(args) do
+                                            if type(arg) == "string" then
+                                                if fxSword ~= "" and not slashFound and (arg:match("Slash") or arg == "Default" or arg:match("Effect")) then
+                                                    args[i] = getgenv().slashName; slashFound = true
+                                                elseif fxSword ~= "" and not swordFound then
+                                                    local isSword = false
+                                                    pcall(function()
+                                                        if rs.Shared["ReplicatedInstances"]["Swords"]:FindFirstChild(arg) then isSword = true end
+                                                    end)
+                                                    if isSword or arg == LocalPlayer:GetAttribute("CurrentlyEquippedSword") then
+                                                        args[i] = fxSword; swordFound = true
+                                                    end
+                                                end
+                                            end
+                                        end
+                                        if fxSword ~= "" and not slashFound and type(args[1]) == "string" then args[1] = getgenv().slashName end
+                                        if fxSword ~= "" and not swordFound and type(args[3]) == "string" then args[3] = fxSword end
+                                    end
+                                    if setthreadidentity then pcall(setthreadidentity, 2) end
+                                    pcall(targetFunc, unpack(args))
+                                end
+                                hookedFuncs[ourFunc] = true
+                                remote.OnClientEvent:Connect(ourFunc)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+    getgenv().updateSword = function()
+        refreshSlashName()
+        if getgenv().skinChanger and getgenv().swordModel ~= "" and getgenv().saveLastEquippedSword then
+            getgenv().saveLastEquippedSword(getgenv().swordModel)
+        end
+        setSword()
+    end
+    task.spawn(function()
+        while task.wait(1) do
+            if getgenv().skinChanger and getgenv().swordModel ~= "" then
+                local char = LocalPlayer.Character
+                if char then
+                    if LocalPlayer:GetAttribute("CurrentlyEquippedSword") ~= getgenv().swordModel then setSword() end
+                    if not char:FindFirstChild(getgenv().swordModel) then setSword() end
+                    for _, v in pairs(char:GetChildren()) do
+                        if v:IsA("Model") and v.Name ~= getgenv().swordModel then v:Destroy() end
+                        task.wait()
+                    end
+                end
+            end
+        end
+    end)
+    LocalPlayer.CharacterAdded:Connect(function()
+        if getgenv().skinChanger then
+            getgenv().skinChanger = false
+            if getgenv().setSkinChangerToggleUI then getgenv().setSkinChangerToggleUI(false) end
+            task.wait(2)
+            getgenv().skinChanger = true
+            if getgenv().setSkinChangerToggleUI then getgenv().setSkinChangerToggleUI(true) end
+            task.wait(0.5)
+            pcall(function() getgenv().updateSword() end)
+        end
+    end)
+end)
+
+local function p5(button, text)
+    if not button then return end
+    for _, object in ipairs(button:GetDescendants()) do
+        if object:IsA("TextLabel") or object:IsA("TextButton") or object:IsA("TextBox") then
+            object.Text = text
+        end
+    end
+    if button:IsA("TextButton") then button.Text = text end
+end
+
+local function c5(shop)
+    local name = ""
+    pcall(function()
+        local info = shop.Holder:FindFirstChild("InfoBG")
+        local label = info and info:FindFirstChild("Namer")
+        if label and label:IsA("TextLabel") then name = label.Text end
+    end)
+    if name == "" then name = getgenv()._mithubCurrentInfoItem or "" end
+    return name
+end
+
+local function x5(name)
+    local ok, isSword = pcall(function()
+        local swords = require(ReplicatedStorage.Shared["ReplicatedInstances"]["Swords"])
+        return swords:GetSword(name) ~= nil
+    end)
+    return ok and isSword and "Sword" or "Explosion"
+end
+
+local function q5(shop, button)
+    local itemName = c5(shop)
+    if itemName == "" or itemName == "Title" then return end
+    local kind = x5(itemName)
+    p5(button, "Equipped")
+
+    if kind == "Explosion" then
+        getgenv().explosionFX = itemName
+        getgenv().explosionChanger = true
+        pcall(function() LocalPlayer:SetAttribute("CurrentlyEquippedExplosion", itemName) end)
+        pcall(function() LocalPlayer:SetAttribute("EquippedExplosion", itemName) end)
+        if LocalPlayer.Character then
+            pcall(function() LocalPlayer.Character:SetAttribute("CurrentlyEquippedExplosion", itemName) end)
+        end
+    else
+        getgenv().swordModel = itemName
+        getgenv().swordAnimations = itemName
+        getgenv().swordFX = itemName
+        getgenv().skinChanger = true
+        if getgenv().updateSword then task.spawn(getgenv().updateSword) end
+    end
+
+    task.spawn(function()
+        local untilTime = os.clock() + 2.5
+        while button.Parent and os.clock() < untilTime do
+            p5(button, "Equipped")
+            task.wait(0.05)
+        end
+    end)
+end
+
+local function w5()
+    if getgenv()._mithubUnlockLoop then return end
+    getgenv()._mithubUnlockLoop = true
+    getgenv().skinChanger = true
+    getgenv().explosionChanger = true
+
+    task.spawn(function()
+        while getgenv().unlockAllEnabled do
+            local pGui = LocalPlayer:FindFirstChildOfClass("PlayerGui")
+            local shop = pGui and pGui:FindFirstChild("Shop")
+            if shop then
+                local holder = shop:FindFirstChild("Holder")
+                local pages = holder and holder:FindFirstChild("Pages")
+                for _, pageName in ipairs({"Sword", "Explosion"}) do
+                    local page = pages and pages:FindFirstChild(pageName)
+                    if page then
+                        local header = page:FindFirstChild("HeaderTitle")
+                        if header then header.Visible = false end
+                        for _, child in ipairs(page:GetDescendants()) do
+                            if child.Name == "Lock" and child:IsA("GuiObject") then
+                                child.Visible = false
+                                local card = child.Parent
+                                if card and card:IsA("GuiObject") then
+                                    card.LayoutOrder = 0
+                                    if card.Parent and card.Parent.Name == "Unowned" then
+                                        local owned = page:FindFirstChild("Owned", true)
+                                        if owned and owned:IsA("GuiObject") then card.Parent = owned end
+                                    end
+                                    if not card:FindFirstChild("MitHubItemHook") then
+                                        local tag = Instance.new("BoolValue")
+                                        tag.Name = "MitHubItemHook"
+                                        tag.Parent = card
+                                        local itemName = card.Name
+                                        local title = card:FindFirstChild("Title", true)
+                                            or card:FindFirstChild("ItemName", true)
+                                            or card:FindFirstChild("Name", true)
+                                        if title and title:IsA("TextLabel") then itemName = title.Text end
+                                        card.InputEnded:Connect(function(input)
+                                            if input.UserInputType == Enum.UserInputType.MouseButton1
+                                                or input.UserInputType == Enum.UserInputType.Touch then
+                                                getgenv()._mithubCurrentInfoItem = itemName
+                                            end
+                                        end)
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+                local info = holder and holder:FindFirstChild("InfoBG")
+                local button = info and (info:FindFirstChild("BuyButton") or info:FindFirstChild("EquipButton"))
+                if not button and info then
+                    for _, child in ipairs(info:GetChildren()) do
+                        if (child:IsA("TextButton") or child:IsA("ImageButton"))
+                            and not child.Name:lower():find("close", 1, true) then
+                            button = child
+                            break
+                        end
+                    end
+                end
+                if button then
+                    button.Visible = true
+                    if not button:FindFirstChild("MitHubEquipHook") then
+                        local tag = Instance.new("BoolValue")
+                        tag.Name = "MitHubEquipHook"
+                        tag.Parent = button
+                        button.MouseButton1Click:Connect(function()
+                            q5(shop, button)
+                        end)
+                    end
+                    local text = button:IsA("TextButton") and button.Text or ""
+                    if text ~= "Equipped" then p5(button, "Equip") end
+                end
+            end
+
+            local emoteWheel = pGui and pGui:FindFirstChild("EmoteWheel")
+            if emoteWheel then
+                for _, d in ipairs(emoteWheel:GetDescendants()) do
+                    if d.Name == "Lock" and d:IsA("GuiObject") then
+                        d.Visible = false
+                    end
+                end
+            end
+            task.wait(0.25)
+        end
+        getgenv()._mithubUnlockLoop = false
+    end)
+end
+
+getgenv().skinChanger = false; getgenv().skinChangerEnabled = false
+getgenv().swordModel = ""; getgenv().swordAnimations = ""; getgenv().swordFX = ""
+getgenv().slashName = "SlashEffect"
+local parry_section = Tabs.Rage:AddSection("Auto Parry", "shield")
+
+parry_section:AddToggle("MitHubAutoParryToggle", {
+    Title = "Auto Parry",
+    Default = false,
+    Callback = function(value)
+        System.__properties.__autoparry_enabled = value
+        System.__properties.__play_animation = value
+        if value then System.autoparry.start() else System.autoparry.stop() end
+        if getgenv().AutoParryNotify then Fluent:Notify({Title="Auto Parry", Content=value and "ON" or "OFF", Duration=1.5}) end
+    end
+})
+
+parry_section:AddDropdown("MitHubParryMode", {
+    Title="Parry Mode", Values={"Remote","Keypress"}, Default="Remote", Multi=false,
+    Callback=function(value) getgenv().AutoParryMode=value end
+})
+
+parry_section:AddToggle("MitHubAutoAbility", {
+    Title="Auto Ability", Default=false,
+    Callback=function(value) getgenv().AutoAbility=value end
+})
+
+parry_section:AddToggle("MitHubCooldownProtection", {
+    Title="Cooldown checker (useful smtimes)", Default=false,
+    Callback=function(value) getgenv().CooldownProtection=value end
+})
+
+parry_section:AddToggle("MitHubAutoParryNotify", {
+    Title="Notify", Default=true,
+    Callback=function(value) getgenv().AutoParryNotify=value end
+})
+
+local tuning_section = Tabs.Rage:AddSection("Parry Tuning", "sliders")
+
+tuning_section:AddValueBox("MitHubParryAccuracy", {
+    Title="Accuracy", Default=50, Min=1, Max=100, Rounding=1,
+    Callback=function(value) System.__properties.__accuracy=value; f2() end
+})
+
+tuning_section:AddValueBox("MitHubParryPingComp", {
+    Title="Ping Comp %", Default=100, Min=0, Max=300, Rounding=0,
+    Callback=function(value) System.autoparry.config.ping_comp = value / 100 end
+})
+
+tuning_section:AddValueBox("MitHubParryExtraLead", {
+    Title="Extra Ball detection (bad smtimes)", Default=0, Min=-100, Max=300, Rounding=0,
+    Callback=function(value) System.autoparry.config.extra_lead = value end
+})
+
+tuning_section:AddValueBox("MitHubParrySafety", {
+    Title="Parry safety (useful)", Default=50, Min=0, Max=100, Rounding=0,
+    Callback=function(value) System.autoparry.config.floor = value / 100 end
+})
+
+tuning_section:AddToggle("MitHubRandomizeAccuracy", {
+    Title="Randomize Accuracy", Default=false,
+    Callback=function(value)
+        System.__properties.__randomized_accuracy_enabled=value
+        if value then d2() end
+    end
+})
+
+local curve_section = Tabs.Rage:AddSection("Curve", "keyboard")
+
+curve_section:AddDropdown("MitHubModeCurve", {
+    Title="Curve Mode", Values=CURVE_NAMES, Default="Camera", Multi=false,
+    Callback=function(value) z2 = value; CurveType = value end
+})
+
+curve_section:AddToggle("MitHubRandomCurveMode", {
+    Title="Random Curve", Default=false,
+    Callback=function(state)
+        if state then
+            if not System.__properties.__connections.__random_curve then
+                System.__properties.__connections.__random_curve = RunService.PreSimulation:Connect(function()
+                    z2 = CURVE_NAMES[math.random(1, #CURVE_NAMES)]
+                end)
+            end
+        else
+            if System.__properties.__connections.__random_curve then
+                System.__properties.__connections.__random_curve:Disconnect()
+                System.__properties.__connections.__random_curve = nil
+            end
+            z2 = CurveType
+        end
+    end
+})
+
+curve_section:AddToggle("MitHubAutoCurveHotkey", {
+    Title="AutoCurve Hotkey", Default=false,
+    Callback=function(state) getgenv().AutoCurveHotkeyEnabled=state end
+})
+
+curve_section:AddToggle("MitHubAutoCurveHotkeyNotify", {
+    Title="Notify", Default=false,
+    Callback=function(value) getgenv().AutoCurveHotkeyNotify=value end
+})
+
+local triggerbot_section = Tabs.Rage:AddSection("Triggerbot", "target")
+
+triggerbot_section:AddToggle("MitHubTriggerbotToggle", {
+    Title = "Triggerbot",
+    Default = false,
+    Callback = function(value)
+        if System.__properties.__is_mobile then
+            if value then
+                if not System.__properties.__mobile_guis.triggerbot then
+                    local triggerbot_mobile = d4("Trigger", 0.65)
+                    System.__properties.__mobile_guis.triggerbot = triggerbot_mobile
+                    local touch_start = 0; local was_dragged = false
+                    triggerbot_mobile.button.InputBegan:Connect(function(input)
+                        if input.UserInputType == Enum.UserInputType.Touch then touch_start = tick(); was_dragged = false end
+                    end)
+                    triggerbot_mobile.button.InputChanged:Connect(function(input)
+                        if input.UserInputType == Enum.UserInputType.Touch and (tick() - touch_start) > 0.1 then was_dragged = true end
+                    end)
+                    triggerbot_mobile.button.InputEnded:Connect(function(input)
+                        if input.UserInputType == Enum.UserInputType.Touch and not was_dragged then
+                            System.__properties.__triggerbot_enabled = not System.__properties.__triggerbot_enabled
+                            System.triggerbot.enable(System.__properties.__triggerbot_enabled)
+                            triggerbot_mobile.text.Text = System.__properties.__triggerbot_enabled and "ON" or "Trigger"
+                            triggerbot_mobile.text.TextColor3 = System.__properties.__triggerbot_enabled and Color3.fromRGB(255, 255, 255) or Color3.fromRGB(255, 255, 255)
+                            if getgenv().TriggerbotNotify then
+                                Fluent:Notify({Title="Triggerbot", Content=System.__properties.__triggerbot_enabled and "ON" or "OFF", Duration=1.5})
+                            end
+                        end
+                    end)
+                end
+            else
+                System.__properties.__triggerbot_enabled = false
+                System.triggerbot.enable(false)
+                m4(System.__properties.__mobile_guis.triggerbot)
+                System.__properties.__mobile_guis.triggerbot = nil
+            end
+        else
+            System.__properties.__triggerbot_enabled = value
+            System.triggerbot.enable(value)
+            if getgenv().TriggerbotNotify then
+                Fluent:Notify({Title="Triggerbot", Content=value and "ON" or "OFF", Duration=1.5})
+            end
+        end
+    end
+})
+
+triggerbot_section:AddToggle("MitHubTriggerbotNotify", {
+    Title = "Notify",
+    Default = true,
+    Callback = function(value) getgenv().TriggerbotNotify = value end
+})
+
+local auto_spam_section = Tabs.Spam:AddSection("Auto Spam", "zap")
+
+auto_spam_section:AddToggle("MitHubAutoSpamToggle", {
+    Title = "Auto Spam",
+    Default = false,
+    Callback = function(state)
+        System.__properties.__auto_spam_enabled = state
+        if state then
+            System.auto_spam.start()
+        else
+            System.auto_spam.stop()
+        end
+        if getgenv().AutoSpamNotify then
+            Fluent:Notify({Title="Auto Spam", Content=state and "ON" or "OFF", Duration=1.5})
+        end
+    end
+})
+
+auto_spam_section:AddDropdown("MitHubAutoSpamMode", {
+    Title = "Spam Mode",
+    Values = {"Remote", "Keypress"},
+    Default = "Remote",
+    Multi = false,
+    Callback = function(value)
+        getgenv().AutoSpamMode = value
+    end
+})
+
+auto_spam_section:AddSlider("MitHubAutoSpamRate", {
+    Title = "Spam Rate",
+    Default = 240,
+    Min = 60,
+    Max = 5000,
+    Rounding = 0,
+    Callback = function(value)
+        System.__properties.__spam_rate = value
+    end
+})
+
+auto_spam_section:AddToggle("MitHubAutoSpamAnimationFix", {
+    Title = "Animation Fix",
+    Default = true,
+    Callback = function(state)
+        getgenv().AutoSpamAnimationFix = state
+    end
+})
+
+auto_spam_section:AddToggle("MitHubAutoSpamNotify", {
+    Title = "Notify",
+    Default = true,
+    Callback = function(state)
+        getgenv().AutoSpamNotify = state
+    end
+})
+
+local manual_spam_section = Tabs.Spam:AddSection("Manual Spam", "skull")
+
+manual_spam_section:AddToggle("MitHubManualSpamToggle", {
+    Title = "Manual Spam",
+    Default = false,
+    Callback = function(state)
+        if System.__properties.__is_mobile then
+            if state then
+                if not System.__properties.__mobile_guis.manual_spam then
+                    local manual_spam_mobile = d4("Spam", 0.8)
+                    System.__properties.__mobile_guis.manual_spam = manual_spam_mobile
+                    local manual_touch_start = 0; local manual_was_dragged = false
+                    manual_spam_mobile.button.InputBegan:Connect(function(input)
+                        if input.UserInputType == Enum.UserInputType.Touch then manual_touch_start = tick(); manual_was_dragged = false end
+                    end)
+                    manual_spam_mobile.button.InputChanged:Connect(function(input)
+                        if input.UserInputType == Enum.UserInputType.Touch and (tick() - manual_touch_start) > 0.1 then manual_was_dragged = true end
+                    end)
+                    manual_spam_mobile.button.InputEnded:Connect(function(input)
+                        if input.UserInputType == Enum.UserInputType.Touch and not manual_was_dragged then
+                            System.__properties.__manual_spam_enabled = not System.__properties.__manual_spam_enabled
+                            if System.__properties.__manual_spam_enabled then
+                                System.manual_spam.start()
+                                manual_spam_mobile.text.Text = "ON"
+                                manual_spam_mobile.text.TextColor3 = Color3.fromRGB(255, 255, 255)
+                            else
+                                System.manual_spam.stop()
+                                manual_spam_mobile.text.Text = "Spam"
+                                manual_spam_mobile.text.TextColor3 = Color3.fromRGB(255, 255, 255)
+                            end
+                            if getgenv().ManualSpamNotify then
+                                Fluent:Notify({Title="Manual Spam", Content=System.__properties.__manual_spam_enabled and "ON" or "OFF", Duration=1.5})
+                            end
+                        end
+                    end)
+                end
+            else
+                System.__properties.__manual_spam_enabled = false
+                System.manual_spam.stop()
+                m4(System.__properties.__mobile_guis.manual_spam)
+                System.__properties.__mobile_guis.manual_spam = nil
+            end
+        else
+            System.__properties.__manual_spam_enabled = state
+            n3 = state
+            if state then System.manual_spam.start() else System.manual_spam.stop() end
+            if getgenv().ManualSpamNotify then
+                Fluent:Notify({Title="Manual Spam", Content=state and "ON" or "OFF", Duration=1.5})
+            end
+        end
+    end
+})
+
+manual_spam_section:AddDropdown("MitHubManualSpamMode", {
+    Title = "Mode",
+    Values = {"Remote", "Keypress"},
+    Default = "Remote",
+    Multi = false,
+    Callback = function(Value) getgenv().ManualSpamMode = Value end
+})
+
+manual_spam_section:AddToggle("MitHubManualSpamAnimationFix", {
+    Title = "Animation Fix",
+    Default = true,
+    Callback = function(value) getgenv().ManualSpamAnimationFix = value; u4 = value end
+})
+
+manual_spam_section:AddToggle("MitHubManualSpamNotify", {
+    Title = "Notify",
+    Default = true,
+    Callback = function(value) getgenv().ManualSpamNotify = value end
+})
+
+local detection_section = Tabs.Detection:AddSection("Ability Detection", "eye")
+
+detection_section:AddToggle("MitHubInfinityDetection", {Title="Infinity Detection", Default=false, Callback=function(v) System.__config.__detections.__infinity=v end})
+detection_section:AddToggle("MitHubInfinityNotify", {Title="Notify", Default=false, Callback=function(v) getgenv().InfinityNotify=v end})
+detection_section:AddToggle("MitHubDeathSlashDetection", {Title="Death Slash Detection", Default=false, Callback=function(v) System.__config.__detections.__deathslash=v end})
+detection_section:AddToggle("MitHubTimeHoleDetection", {Title="Time Hole Detection", Default=false, Callback=function(v) System.__config.__detections.__timehole=v end})
+detection_section:AddToggle("MitHubAntiPhantom", {Title="Anti-Phantom", Default=false, Callback=function(v) System.__config.__detections.__phantom=v end})
+detection_section:AddToggle("MitHubPullDetection", {Title="Pull Detection", Default=false, Callback=function(v)
+    System.__config.__detections.__pull = v
+    if not v then System.__properties.__pull_active = false end
+end})
+detection_section:AddToggle("MitHubPullNotify", {Title="Pull Notify", Default=false, Callback=function(v) System.__config.__pull_notify=v end})
+detection_section:AddSlider("MitHubPullHold", {Title="Pull Hold Time", Default=0.6, Min=0.2, Max=1.5, Rounding=2, Callback=function(v) System.__config.__pull_hold=v end})
+
+local slashes_section = Tabs.Detection:AddSection("Slashes Of Fury", "swords")
+
+slashes_section:AddToggle("MitHubSlashesOfFuryDetection", {Title="Slashes Of Fury Detection", Default=false, Callback=function(v) System.__config.__detections.__slashesoffury=v end})
+slashes_section:AddSlider("MitHubParryDelay", {Title="Parry Delay", Default=0.05, Min=0.05, Max=0.250, Rounding=2, Callback=function(v) parryDelay=v end})
+slashes_section:AddSlider("MitHubMaxParryCount", {Title="Max Parry Count", Default=35, Min=1, Max=35, Rounding=0, Callback=function(v) maxParryCount=v end})
+
+local jump_section = Tabs.Movement:AddSection("Jump", "arrow-up")
+
+local AutoJump = false
+local ajLastOnGround = false
+local ajButtonData = nil
+
+local function ajRefreshButton()
+    if ajButtonData then
+        ajButtonData.text.Text = AutoJump and "ON" or "Jump"
+    end
+end
+
+jump_section:AddToggle("MitHubAutoJump", {
+    Title = "Auto Jump",
+    Default = false,
+    Callback = function(value)
+        AutoJump = value
+        if not value then ajLastOnGround = false end
+        Fluent:Notify({Title="Auto Jump", Content=value and "ON" or "OFF", Duration=1.5})
+        ajRefreshButton()
+    end
+})
+
+jump_section:AddToggle("MitHubAutoJumpButton", {
+    Title = "Auto Jump Button",
+    Default = false,
+    Callback = function(value)
+        if value then
+            if not ajButtonData then
+                ajButtonData = d4("Jump", 0.5)
+                ajRefreshButton()
+                local pressing = false
+                local pressStart = 0
+                local wasDragged = false
+                ajButtonData.button.InputBegan:Connect(function(input)
+                    if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+                        pressing = true
+                        pressStart = tick()
+                        wasDragged = false
+                    end
+                end)
+                ajButtonData.button.InputChanged:Connect(function(input)
+                    if pressing and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) and (tick() - pressStart) > 0.1 then
+                        wasDragged = true
+                    end
+                end)
+                ajButtonData.button.InputEnded:Connect(function(input)
+                    if pressing and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1) then
+                        pressing = false
+                        if not wasDragged then
+                            q2("MitHubAutoJump", not AutoJump)
+                        end
+                    end
+                end)
+            end
+        else
+            m4(ajButtonData)
+            ajButtonData = nil
+        end
+    end
+})
+
+jump_section:AddToggle("MitHubInfiniteJump", {
+    Title = "Infinite Jump",
+    Default = false,
+    Callback = function(value)
+        x4(value)
+    end
+})
+
+RunService.Heartbeat:Connect(function()
+    if AutoJump then
+        local char = LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        if hum then
+            local onGround = hum.FloorMaterial ~= Enum.Material.Air
+            if onGround and not ajLastOnGround then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+            ajLastOnGround = onGround
+        end
+    else
+        ajLastOnGround = false
+    end
+end)
+
+local character_section = Tabs.Movement:AddSection("Character Modifiers", "user")
+
+character_section:AddToggle("MitHubCharacterEnabled", {
+    Title = "Enable Character Modifiers",
+    Default = false,
+    Callback = function(value)
+        q4(value)
+    end
+})
+
+character_section:AddToggle("MitHubWalkSpeedToggle", {
+    Title = "Walk Speed",
+    Default = false,
+    Callback = function(value)
+        getgenv().WalkspeedCheckboxEnabled = value
+        if not value and getgenv().CharacterModifierEnabled then
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") and getgenv().OriginalValues then
+                char.Humanoid.WalkSpeed = getgenv().OriginalValues.WalkSpeed or 16
+            end
+        end
+    end
+})
+
+character_section:AddSlider("MitHubWalkSpeedValue", {
+    Title = "Walk Speed Value",
+    Default = 36,
+    Min = 16,
+    Max = 500,
+    Rounding = 0,
+    Callback = function(value)
+        getgenv().CustomWalkSpeed = value
+        if getgenv().CharacterModifierEnabled and getgenv().WalkspeedCheckboxEnabled then
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.WalkSpeed = value
+            end
+        end
+    end
+})
+
+character_section:AddToggle("MitHubJumpPowerToggle", {
+    Title = "Jump Power",
+    Default = false,
+    Callback = function(value)
+        getgenv().JumpPowerCheckboxEnabled = value
+        if not value and getgenv().CharacterModifierEnabled then
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") and getgenv().OriginalValues then
+                local humanoid = char.Humanoid
+                if humanoid.UseJumpPower then
+                    humanoid.JumpPower = getgenv().OriginalValues.JumpPower or 50
+                else
+                    humanoid.JumpHeight = getgenv().OriginalValues.JumpHeight or 7.2
+                end
+            end
+        end
+    end
+})
+
+character_section:AddSlider("MitHubJumpPowerValue", {
+    Title = "Jump Power Value",
+    Default = 50,
+    Min = 50,
+    Max = 200,
+    Rounding = 0,
+    Callback = function(value)
+        getgenv().CustomJumpPower = value
+        getgenv().CustomJumpHeight = value * 0.144
+        if getgenv().CharacterModifierEnabled and getgenv().JumpPowerCheckboxEnabled then
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                local humanoid = char.Humanoid
+                if humanoid.UseJumpPower then
+                    humanoid.JumpPower = value
+                else
+                    humanoid.JumpHeight = value * 0.144
+                end
+            end
+        end
+    end
+})
+
+character_section:AddToggle("MitHubSpinbot", {
+    Title = "Spin",
+    Default = false,
+    Callback = function(value)
+        getgenv().SpinbotCheckboxEnabled = value
+        if not value and getgenv().CharacterModifierEnabled then
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") and getgenv().OriginalValues then
+                char.Humanoid.AutoRotate = getgenv().OriginalValues.AutoRotate or true
+            end
+        end
+    end
+})
+
+character_section:AddSlider("MitHubSpinSpeed", {
+    Title = "Spin Speed",
+    Default = 5,
+    Min = 1,
+    Max = 50,
+    Rounding = 0,
+    Callback = function(value)
+        getgenv().CustomSpinSpeed = value
+    end
+})
+
+character_section:AddToggle("MitHubGravityToggle", {
+    Title = "Gravity",
+    Default = false,
+    Callback = function(value)
+        getgenv().GravityCheckboxEnabled = value
+        if not value and getgenv().CharacterModifierEnabled then
+            workspace.Gravity = 196.2
+        end
+    end
+})
+
+character_section:AddSlider("MitHubGravityValue", {
+    Title = "Gravity Value",
+    Default = 196.2,
+    Min = 0,
+    Max = 400,
+    Rounding = 1,
+    Callback = function(value)
+        getgenv().CustomGravity = value
+        if getgenv().CharacterModifierEnabled and getgenv().GravityCheckboxEnabled then
+            workspace.Gravity = value
+        end
+    end
+})
+
+character_section:AddToggle("MitHubHipHeightToggle", {
+    Title = "Hip Height",
+    Default = false,
+    Callback = function(value)
+        getgenv().HipHeightCheckboxEnabled = value
+        if not value and getgenv().CharacterModifierEnabled then
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") and getgenv().OriginalValues then
+                char.Humanoid.HipHeight = getgenv().OriginalValues.HipHeight or 0
+            end
+        end
+    end
+})
+
+character_section:AddSlider("MitHubHipHeightValue", {
+    Title = "Hip Height Value",
+    Default = 0,
+    Min = -5,
+    Max = 20,
+    Rounding = 1,
+    Callback = function(value)
+        getgenv().CustomHipHeight = value
+        if getgenv().CharacterModifierEnabled and getgenv().HipHeightCheckboxEnabled then
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("Humanoid") then
+                char.Humanoid.HipHeight = value
+            end
+        end
+    end
+})
+
+local ability_esp_section = Tabs.Visuals:AddSection("Ability ESP", "eye")
+
+do
+    local Visual_Data = {}
+    local Visual_HeartbeatConn
+    local Visual_PlayerAddedConn
+    local Visual_Cooldowns = {}
+    local Visual_IconCache = {}
+    local Visual_CharConns = {}
+    local visual_last_update = 0
+    local Abilities = require(ReplicatedStorage.Shared.Abilities)
+
+    local function esp_get_cd(plr)
+        local ability = plr:GetAttribute("CurrentlyEquippedAbility") or plr:GetAttribute("EquippedAbility")
+        if not ability then return nil end
+        local ok, cd = pcall(Abilities.getAbilityCooldown, plr, ability)
+        if ok and type(cd) == "number" and cd > 0 then return cd end
+        return nil
+    end
+
+    local function esp_get_icon(abilityName)
+        if not abilityName or abilityName == "" then return "" end
+        if Visual_IconCache[abilityName] ~= nil then return Visual_IconCache[abilityName] end
+        local shared = ReplicatedStorage:FindFirstChild("Shared")
+        local abilities = shared and shared:FindFirstChild("Abilities")
+        local m = abilities and abilities:FindFirstChild(abilityName)
+        if not m then Visual_IconCache[abilityName] = ""; return "" end
+        local ok, mod = pcall(require, m)
+        local icon = (ok and mod and type(mod.iconId) == "string") and mod.iconId or ""
+        Visual_IconCache[abilityName] = icon
+        return icon
+    end
+
+    local function create_esp_for_player(plr)
+        task.spawn(function()
+            local char = plr.Character
+            while not char or not char.Parent do
+                if not getgenv().VisualESP then return end
+                task.wait()
+                char = plr.Character
+            end
+            local head = char:WaitForChild("Head", 10)
+            if not head or not getgenv().VisualESP then return end
+            if Visual_Data[plr] then
+                pcall(function() Visual_Data[plr].bill:Destroy() end)
+                if Visual_Data[plr].cdConn then pcall(function() Visual_Data[plr].cdConn:Disconnect() end) end
+                Visual_Data[plr] = nil
+            end
+            local bill = Instance.new("BillboardGui")
+            bill.Name = "MitHubAbilityESPGui"
+            bill.Adornee = head
+            bill.Size = UDim2.fromOffset(100, 62)
+            bill.StudsOffset = Vector3.new(0, 3.2, 0)
+            bill.AlwaysOnTop = true
+            bill.ResetOnSpawn = false
+            bill.Parent = CoreGui
+            local icon = Instance.new("ImageLabel")
+            icon.Name = "AbilityIcon"
+            icon.Size = UDim2.fromOffset(32, 32)
+            icon.AnchorPoint = Vector2.new(0.5, 0)
+            icon.Position = UDim2.new(0.5, 0, 0, 0)
+            icon.BackgroundTransparency = 1
+            icon.BorderSizePixel = 0
+            icon.ScaleType = Enum.ScaleType.Fit
+            icon.Image = esp_get_icon(plr:GetAttribute("CurrentlyEquippedAbility") or plr:GetAttribute("EquippedAbility") or "")
+            icon.Parent = bill
+            local label = Instance.new("TextLabel")
+            label.Size = UDim2.new(1, 0, 0, 14)
+            label.Position = UDim2.new(0, 0, 0, 34)
+            label.BackgroundTransparency = 1
+            label.FontFace = Font.new("rbxasset://fonts/families/GothamSSm.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+            label.TextColor3 = Color3.fromRGB(255, 255, 255)
+            label.TextSize = 11
+            label.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+            label.TextStrokeTransparency = 0.2
+            label.TextXAlignment = Enum.TextXAlignment.Center
+            label.TextTruncate = Enum.TextTruncate.AtEnd
+            label.Text = plr:GetAttribute("CurrentlyEquippedAbility") or plr:GetAttribute("EquippedAbility") or plr.DisplayName
+            label.Parent = bill
+            local timerLabel = Instance.new("TextLabel")
+            timerLabel.Size = UDim2.new(1, 0, 0, 13)
+            timerLabel.Position = UDim2.new(0, 0, 0, 49)
+            timerLabel.BackgroundTransparency = 1
+            timerLabel.FontFace = Font.new("rbxasset://fonts/families/SFPro.json", Enum.FontWeight.Bold, Enum.FontStyle.Normal)
+            timerLabel.TextColor3 = Color3.fromRGB(190, 140, 255)
+            timerLabel.TextSize = 12
+            timerLabel.TextStrokeColor3 = Color3.fromRGB(0, 0, 0)
+            timerLabel.TextStrokeTransparency = 0.2
+            timerLabel.TextXAlignment = Enum.TextXAlignment.Center
+            timerLabel.Text = "Ready"
+            timerLabel.Parent = bill
+            local last_cd = 0
+            local cdConn = char.AttributeChanged:Connect(function(attr)
+                if attr == "CooldownExpiration" then
+                    local val = char:GetAttribute("CooldownExpiration")
+                    if (val == 0 or val == nil) and tick() - last_cd > 0.5 then
+                        local dur = esp_get_cd(plr)
+                        if dur then last_cd = tick(); Visual_Cooldowns[plr] = {expiry = tick() + dur, duration = dur} end
+                    end
+                elseif attr == "AbilityActive" then
+                    if char:GetAttribute("AbilityActive") == true and tick() - last_cd > 0.5 then
+                        local dur = esp_get_cd(plr)
+                        if dur then last_cd = tick(); Visual_Cooldowns[plr] = {expiry = tick() + dur, duration = dur} end
+                    end
+                end
+            end)
+            local ab = plr:GetAttribute("CurrentlyEquippedAbility") or plr:GetAttribute("EquippedAbility")
+            local ok, dur = pcall(Abilities.getAbilityCooldown, plr, ab or "")
+            Visual_Data[plr] = {bill = bill, label = label, icon = icon, timerLabel = timerLabel, cdConn = cdConn, isPassive = ok and type(dur) == "number" and dur <= 0}
+        end)
+    end
+
+    local function add_esp_player(plr)
+        if plr == LocalPlayer or Visual_CharConns[plr] then return end
+        local a = plr.CharacterAdded:Connect(function()
+            Visual_Cooldowns[plr] = nil
+            create_esp_for_player(plr)
+        end)
+        local r = plr.CharacterRemoving:Connect(function()
+            Visual_Cooldowns[plr] = nil
+        end)
+        Visual_CharConns[plr] = {a, r}
+        if plr.Character then create_esp_for_player(plr) end
+    end
+
+    local function stop_ability_esp()
+        getgenv().VisualESP = false
+        if Visual_HeartbeatConn then Visual_HeartbeatConn:Disconnect(); Visual_HeartbeatConn = nil end
+        if Visual_PlayerAddedConn then Visual_PlayerAddedConn:Disconnect(); Visual_PlayerAddedConn = nil end
+        for _, conns in pairs(Visual_CharConns) do
+            for _, c in ipairs(conns) do pcall(function() c:Disconnect() end) end
+        end
+        table.clear(Visual_CharConns)
+        for _, data in pairs(Visual_Data) do
+            pcall(function() data.bill:Destroy() end)
+            if data.cdConn then pcall(function() data.cdConn:Disconnect() end) end
+        end
+        Visual_Data = {}
+        Visual_Cooldowns = {}
+        table.clear(Visual_IconCache)
+    end
+
+    local function start_ability_esp()
+        getgenv().VisualESP = true
+        if not Visual_HeartbeatConn then
+            Visual_HeartbeatConn = RunService.Heartbeat:Connect(function()
+                if not getgenv().VisualESP then return end
+                local now = tick()
+                if now - visual_last_update < 0.1 then return end
+                visual_last_update = now
+                for plr, data in pairs(Visual_Data) do
+                    if not plr.Parent then
+                        pcall(function() data.bill:Destroy() end)
+                        if data.cdConn then pcall(function() data.cdConn:Disconnect() end) end
+                        Visual_Data[plr] = nil
+                        Visual_Cooldowns[plr] = nil
+                    else
+                        local ab = plr:GetAttribute("CurrentlyEquippedAbility") or plr:GetAttribute("EquippedAbility") or ""
+                        local display = ab ~= "" and ab or plr.DisplayName
+                        if data.label.Text ~= display then
+                            data.label.Text = display
+                            data.icon.Image = esp_get_icon(ab)
+                            local ok, dur = pcall(Abilities.getAbilityCooldown, plr, ab)
+                            data.isPassive = ok and type(dur) == "number" and dur <= 0
+                            Visual_Cooldowns[plr] = nil
+                        end
+                        local cd = Visual_Cooldowns[plr]
+                        if cd and now < cd.expiry then
+                            data.timerLabel.Text = string.format("%.1fs", cd.expiry - now)
+                        elseif data.isPassive then
+                            data.timerLabel.Text = "Passive"
+                        else
+                            data.timerLabel.Text = "Ready"
+                        end
+                    end
+                end
+            end)
+        end
+        for _, plr in ipairs(Players:GetPlayers()) do add_esp_player(plr) end
+        if not Visual_PlayerAddedConn then
+            Visual_PlayerAddedConn = Players.PlayerAdded:Connect(function(plr)
+                if getgenv().VisualESP then add_esp_player(plr) end
+            end)
+        end
+    end
+
+    ability_esp_section:AddToggle("MitHubAbilityESP", {
+        Title = "Ability ESP",
+        Default = false,
+        Callback = function(state)
+            if state then start_ability_esp() else stop_ability_esp() end
+        end
+    })
+end
+
+local hud_section = Tabs.Visuals:AddSection("HUD", "gauge")
+
+function System.apply_button_style(frame)
+    local old = frame:FindFirstChild("MitHubButtonBg")
+    if old then old:Destroy() end
+    frame.BackgroundTransparency = 1
+    local bg = Instance.new("ImageLabel")
+    bg.Name = "MitHubButtonBg"
+    bg.Size = UDim2.new(1, 0, 1, 0)
+    bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    bg.BackgroundTransparency = 0
+    bg.BorderSizePixel = 0
+    bg.ZIndex = 0
+    bg.Image = ""
+    local source = uiBg()
+    if source then
+        bg.Image = source.Image
+        bg.ImageColor3 = source.ImageColor3
+        bg.ImageTransparency = source.ImageTransparency
+        bg.ScaleType = source.ScaleType
+        bg.SliceCenter = source.SliceCenter
+        bg.TileSize = source.TileSize
+        bg.ImageRectOffset = source.ImageRectOffset
+        bg.ImageRectSize = source.ImageRectSize
+        bg.ResampleMode = source.ResampleMode
+    end
+    bg.Parent = frame
+    Instance.new("UICorner", bg).CornerRadius = UDim.new(0, 10)
+    f1(bg, 1.5, Color3.fromRGB(0, 0, 0))
+    return bg
+end
+
+function System.create_ball_velocity_gui()
+    if System.__properties.__ball_velocity_gui then System.__properties.__ball_velocity_gui.gui:Destroy() end
+    local gui = Instance.new("ScreenGui")
+    gui.Name = "MitHubBallVelocityGUI"
+    gui.ResetOnSpawn = false
+    gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+    gui.DisplayOrder = 999
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 220, 0, 80)
+    frame.Position = UDim2.new(0, 10, 0.82, 0)
+    frame.BackgroundTransparency = 1
+    frame.BorderSizePixel = 0
+    frame.Active = true
+    frame.Selectable = true
+    frame.Draggable = true
+    System.apply_button_style(frame)
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0, 20)
+    title.Position = UDim2.new(0, 0, 0, 5)
+    title.BackgroundTransparency = 1
+    title.Text = "Ball Status"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Font = Enum.Font.GothamBold
+    title.TextSize = 14
+    title.Parent = frame
+
+    local currentSpeedLabel = Instance.new("TextLabel")
+    currentSpeedLabel.Size = UDim2.new(1, -10, 0, 25)
+    currentSpeedLabel.Position = UDim2.new(0, 5, 0, 25)
+    currentSpeedLabel.BackgroundTransparency = 1
+    currentSpeedLabel.Text = "Current: 0"
+    currentSpeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    currentSpeedLabel.Font = Enum.Font.GothamBold
+    currentSpeedLabel.TextSize = 16
+    currentSpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
+    currentSpeedLabel.Parent = frame
+
+    local peakSpeedLabel = Instance.new("TextLabel")
+    peakSpeedLabel.Size = UDim2.new(1, -10, 0, 25)
+    peakSpeedLabel.Position = UDim2.new(0, 5, 0, 50)
+    peakSpeedLabel.BackgroundTransparency = 1
+    peakSpeedLabel.Text = "Peak: 0"
+    peakSpeedLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    peakSpeedLabel.Font = Enum.Font.GothamBold
+    peakSpeedLabel.TextSize = 16
+    peakSpeedLabel.TextXAlignment = Enum.TextXAlignment.Left
+    peakSpeedLabel.Parent = frame
+
+    frame.Parent = gui
+    gui.Parent = CoreGui
+    System.__properties.__ball_velocity_gui = {
+        gui = gui, frame = frame,
+        currentSpeedLabel = currentSpeedLabel,
+        peakSpeedLabel = peakSpeedLabel
+    }
+end
+
+function System.update_ball_velocity()
+    if not System.__properties.__ball_velocity_enabled or not System.__properties.__ball_velocity_gui then return end
+    local ball = System.ball.get()
+    if not ball then System.__properties.__ball_velocity_gui.currentSpeedLabel.Text = "Current: 0"; return end
+    local ballId = ball:GetFullName()
+    if ballId ~= System.__properties.__last_ball_id then
+        System.__properties.__peak_velocity = 0
+        System.__properties.__last_ball_id = ballId
+    end
+    local zoomies = ball:FindFirstChild("zoomies")
+    if not zoomies then System.__properties.__ball_velocity_gui.currentSpeedLabel.Text = "Current: 0"; return end
+    local speed = zoomies.VectorVelocity.Magnitude
+    if speed > System.__properties.__peak_velocity then System.__properties.__peak_velocity = speed end
+
+    local color = Color3.fromRGB(210, 160, 255)
+    if speed > 2000 then color = Color3.fromRGB(255, 80, 120)
+    elseif speed > 1500 then color = Color3.fromRGB(255, 165, 0) end
+
+    local peakColor = Color3.fromRGB(210, 160, 255)
+    if System.__properties.__peak_velocity > 2000 then peakColor = Color3.fromRGB(255, 80, 120)
+    elseif System.__properties.__peak_velocity > 1500 then peakColor = Color3.fromRGB(255, 165, 0) end
+
+    System.__properties.__ball_velocity_gui.currentSpeedLabel.RichText = true
+    System.__properties.__ball_velocity_gui.currentSpeedLabel.Text = string.format("Current: <font color='#%02x%02x%02x'>%.1f</font>",
+        math.floor(color.R * 255), math.floor(color.G * 255), math.floor(color.B * 255), speed)
+    System.__properties.__ball_velocity_gui.peakSpeedLabel.RichText = true
+    System.__properties.__ball_velocity_gui.peakSpeedLabel.Text = string.format("Peak: <font color='#%02x%02x%02x'>%.1f</font>",
+        math.floor(peakColor.R * 255), math.floor(peakColor.G * 255), math.floor(peakColor.B * 255), System.__properties.__peak_velocity)
+end
+
+hud_section:AddToggle("MitHubBallVelocity", {
+    Title = "Show Ball Velocity",
+    Default = false,
+    Callback = function(value)
+        System.__properties.__ball_velocity_enabled = value
+        if value then
+            System.create_ball_velocity_gui()
+            if not System.__properties.__connections.__ball_velocity then
+                System.__properties.__connections.__ball_velocity = RunService.RenderStepped:Connect(System.update_ball_velocity)
+            end
+            Fluent:Notify({Title="Ball Stats", Content="Activated", Duration=2})
+        else
+            if System.__properties.__ball_velocity_gui then
+                System.__properties.__ball_velocity_gui.gui:Destroy()
+                System.__properties.__ball_velocity_gui = nil
+            end
+            if System.__properties.__connections.__ball_velocity then
+                System.__properties.__connections.__ball_velocity:Disconnect()
+                System.__properties.__connections.__ball_velocity = nil
+            end
+            System.__properties.__peak_velocity = 0
+            System.__properties.__last_ball_id = nil
+            Fluent:Notify({Title="Ball Stats", Content="Deactivated", Duration=2})
+        end
+    end
+})
+
+local PingGui = Instance.new("ScreenGui", CoreGui)
+PingGui.Name = "MitHubRealPing"
+PingGui.ResetOnSpawn = false
+PingGui.IgnoreGuiInset = true
+PingGui.DisplayOrder = 999
+PingGui.Enabled = false
+
+local PingFrame = Instance.new("Frame", PingGui)
+PingFrame.Size = UDim2.new(0, 110, 0, 35)
+PingFrame.Position = UDim2.new(0, 15, 0.88, 0)
+PingFrame.BackgroundTransparency = 1
+PingFrame.BorderSizePixel = 0
+PingFrame.Active = true
+PingFrame.Draggable = true
+
+local PingLabel = Instance.new("TextLabel", PingFrame)
+PingLabel.Size = UDim2.new(1, 0, 1, 0)
+PingLabel.Text = "Ping: 0ms"
+PingLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+PingLabel.BackgroundTransparency = 1
+PingLabel.Font = Enum.Font.GothamBold
+PingLabel.TextSize = 14
+PingLabel.TextXAlignment = Enum.TextXAlignment.Center
+
+hud_section:AddToggle("MitHubShowPing", {
+    Title = "Show ur Ms",
+    Default = false,
+    Callback = function(value)
+        if value then System.apply_button_style(PingFrame) end
+        PingGui.Enabled = value
+        if value then
+            Fluent:Notify({Title="show Ms", Content="Activated", Duration=2})
+            task.spawn(function()
+                while PingGui.Enabled do
+                    task.wait(0.5)
+                    if PingGui.Enabled and PingLabel then
+                        local ping = Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+                        local color = Color3.fromRGB(190, 140, 255)
+                        if ping > 150 then color = Color3.fromRGB(255, 165, 0)
+                        elseif ping > 300 then color = Color3.fromRGB(255, 0, 0) end
+                        PingLabel.Text = string.format("Ms: <font color='#%02x%02x%02x'>%dms</font>",
+                            math.floor(color.R * 255), math.floor(color.G * 255), math.floor(color.B * 255), ping)
+                        PingLabel.RichText = true
+                    end
+                end
+            end)
+        else
+            Fluent:Notify({Title="Real Ms", Content="Deactivated", Duration=2})
+        end
+    end
+})
+
+local camera_section = Tabs.Visuals:AddSection("Camera", "monitor")
+
+camera_section:AddToggle("MitHubFOVEnabled", {
+    Title = "Enable FOV",
+    Default = false,
+    Callback = function(value)
+        getgenv().CameraEnabled = value
+        local Camera = Workspace.CurrentCamera
+        if value then
+            getgenv().CameraFOV = getgenv().CameraFOV or 70
+            Camera.FieldOfView = getgenv().CameraFOV
+            if not getgenv().FOVLoop then
+                getgenv().FOVLoop = RunService.RenderStepped:Connect(function()
+                    if getgenv().CameraEnabled and Workspace.CurrentCamera then
+                        Workspace.CurrentCamera.FieldOfView = getgenv().CameraFOV
+                    end
+                end)
+            end
+        else
+            if Camera then Camera.FieldOfView = 70 end
+            if getgenv().FOVLoop then
+                getgenv().FOVLoop:Disconnect()
+                getgenv().FOVLoop = nil
+            end
+        end
+    end
+})
+
+camera_section:AddSlider("MitHubFOVValue", {
+    Title = "Camera FOV",
+    Default = 70,
+    Min = 50,
+    Max = 120,
+    Rounding = 0,
+    Callback = function(value)
+        getgenv().CameraFOV = value
+        if getgenv().CameraEnabled and Workspace.CurrentCamera then
+            Workspace.CurrentCamera.FieldOfView = value
+        end
+    end
+})
+
+local performance_section = Tabs.Visuals:AddSection("Performance", "cpu")
+
+local Connections_Manager = {}
+
+performance_section:AddToggle("MitHubNoRender", {
+    Title = "turn off ingame Effects",
+    Default = false,
+    Callback = function(state)
+        local effectScripts = LocalPlayer.PlayerScripts:FindFirstChild("EffectScripts")
+        if effectScripts then
+            local clientFX = effectScripts:FindFirstChild("ClientFX")
+            if clientFX then clientFX.Disabled = state end
+        end
+        if state then
+            Connections_Manager["No Render"] = Workspace.Runtime.ChildAdded:Connect(function(Value) Debris:AddItem(Value, 0) end)
+        else
+            if Connections_Manager["No Render"] then
+                Connections_Manager["No Render"]:Disconnect()
+                Connections_Manager["No Render"] = nil
+            end
+        end
+    end
+})
+
+local skin_changer_section = Tabs.Misc:AddSection("Skin Changer & Unlock All", "sword")
+
+local skinChangerToggle = skin_changer_section:AddToggle("MitHubSkinChanger", {
+    Title = "Skin Changer",
+    Default = false,
+    Callback = function(value)
+        getgenv().skinChanger = value
+        getgenv().skinChangerEnabled = value
+        if value and getgenv().swordModel ~= "" then
+            if getgenv().updateSword then pcall(getgenv().updateSword) end
+            Fluent:Notify({Title="Skin Changer", Content="Enabled", Duration=2})
+        elseif not value then
+            Fluent:Notify({Title="Skin Changer", Content="Disabled", Duration=2})
+        end
+    end
+})
+
+getgenv().setSkinChangerToggleUI = function(v)
+    if skinChangerToggle and skinChangerToggle.Value ~= v then
+        pcall(function()
+            if skinChangerToggle.Set then skinChangerToggle:Set(v)
+            elseif skinChangerToggle.SetValue then skinChangerToggle:SetValue(v) end
+        end)
+        getgenv().skinChanger = v
+        getgenv().skinChangerEnabled = v
+    end
+end
+
+skin_changer_section:AddInput("MitHubSwordName", {
+    Title = "Sword Name",
+    Placeholder = "Enter sword name",
+    Default = "",
+    Callback = function(text)
+        getgenv().swordModel = text
+        getgenv().swordAnimations = text
+        getgenv().swordFX = text
+        if getgenv().skinChanger and text ~= "" and getgenv().updateSword then pcall(getgenv().updateSword) end
+        if getgenv().saveLastEquippedSword then pcall(getgenv().saveLastEquippedSword, text) end
+    end
+})
+
+skin_changer_section:AddToggle("MitHubSaveLastSword", {
+    Title = "Save last sword u equipped",
+    Default = true,
+    Callback = function(v) getgenv().autoLoadLastSword = v end
+})
+
+skin_changer_section:AddToggle("MitHubUnlockAll", {
+    Title = "Unlock All",
+    Default = false,
+    Callback = function(state)
+        getgenv().unlockAllEnabled = state
+        if state then
+            w5()
+            Fluent:Notify({Title="Unlock All", Content="Enabled! Open Shop to equip any Sword/Explosion.", Duration=3})
+        else
+            Fluent:Notify({Title="Unlock All", Content="Disabled", Duration=2})
+        end
+    end
+})
+
+local abilities_section = Tabs.Misc:AddSection("Abilities", "zap")
+
+abilities_section:AddToggle("MitHubThunderDashToggle", {
+    Title = "inf thunder dash",
+    Default = false,
+    Callback = function(value)
+        if value then
+            ThunderDash:Enable()
+            Fluent:Notify({Title="Thunder Dash", Content="Enabled - Infinite skill", Duration=3})
+        else
+            ThunderDash:Disable()
+            Fluent:Notify({Title="Thunder Dash", Content="Disabled", Duration=2})
+        end
+    end
+})
+
+local emotes_section = Tabs.Misc:AddSection("Emotes Player", "smile")
+
+emotes_section:AddDropdown("MitHubEmoteSelected", {
+    Title = "Emote Type",
+    Values = emotes_data,
+    Default = selected_animation,
+    Multi = false,
+    Callback = function(value)
+        selected_animation = value
+        if getgenv().Animations then
+            w4.play(value)
+        end
+    end
+})
+
+emotes_section:AddToggle("MitHubEmotesToggle", {
+    Title = "Play Emote",
+    Default = false,
+    Callback = function(value)
+        getgenv().Animations = value
+        if value then
+            w4.start()
+            if selected_animation then
+                w4.play(selected_animation)
+            end
+        else
+            w4.cleanup()
+        end
+    end
+})
+
+emotes_section:AddToggle("MitHubEmotesAutoStop", {
+    Title = "Auto Stop on Move",
+    Default = false,
+    Callback = function(value)
+        getgenv().AutoStop = value
+    end
+})
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    local kc = input.KeyCode
+    if kc == Enum.KeyCode.Unknown then return end
+
+    local curve_map = {
+        [Enum.KeyCode.One]   = "Camera",
+        [Enum.KeyCode.Two]   = "Random",
+        [Enum.KeyCode.Three] = "Accelerated",
+        [Enum.KeyCode.Four]  = "Backwards",
+        [Enum.KeyCode.Five]  = "Slow",
+        [Enum.KeyCode.Six]   = "High",
+        [Enum.KeyCode.Seven] = "Normal",
+        [Enum.KeyCode.Eight] = "Speed",
+        [Enum.KeyCode.Nine]  = "Down"
+    }
+
+    if getgenv().AutoCurveHotkeyEnabled and curve_map[kc] then
+        z2 = curve_map[kc]
+        CurveType = curve_map[kc]
+        q2("MitHubModeCurve", curve_map[kc])
+        if getgenv().AutoCurveHotkeyNotify then
+            Fluent:Notify({Title="Curve Mode", Content=curve_map[kc], Duration=1})
+        end
+    end
+end)
+
+Fluent:Notify({
+    Title = "MitHub",
+    Content = "loaded successfully. block once manually first then u can turn on Auto parry.",
+    Duration = 8
+})
+
+end)
